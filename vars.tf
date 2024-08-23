@@ -1,3 +1,10 @@
+## DATAS
+
+variable "application_template_display_name" {
+  type    = string
+  default = null
+}
+
 ## RESOURCES
 
 variable "administrative_unit" {
@@ -32,14 +39,112 @@ variable "administrative_unit_role_member" {
 
 variable "app_role_assignment" {
   type = list(object({
-    id = number
+    id                  = number
+    app_role_id         = any
+    principal_object_id = any
+    resource_object_id  = any
   }))
   default = []
 }
 
 variable "application" {
   type = list(object({
-    id = number
+    id                             = number
+    display_name                   = string
+    description                    = optional(string)
+    device_only_auth_enabled       = optional(bool)
+    fallback_public_client_enabled = optional(bool)
+    group_membership_claims        = optional(list(string))
+    identifier_uris                = optional(list(string))
+    logo_image                     = optional(string)
+    marketing_url                  = optional(string)
+    notes                          = optional(string)
+    oauth2_post_response_required  = optional(bool)
+    owners                         = optional(list(string))
+    prevent_duplicate_names        = optional(bool)
+    privacy_statement_url          = optional(string)
+    service_management_reference   = optional(string)
+    sign_in_audience               = optional(string)
+    support_url                    = optional(string)
+    tags                           = optional(list(string))
+    template_id                    = optional(any)
+    terms_of_service_url           = optional(string)
+    password = optional(list(object({
+      display_name = string
+      start_date   = optional(string)
+      end_date     = optional(string)
+    })))
+    api = optional(list(object({
+      known_client_applications      = optional(list(string))
+      mapped_claims_enabled          = optional(bool)
+      requested_access_token_version = optional(number)
+      oauth2_permission_scope = optional(list(object({
+        id                         = optional(string)
+        admin_consent_description  = optional(string)
+        admin_consent_display_name = optional(string)
+        enabled                    = optional(bool)
+        type                       = optional(string)
+        user_consent_description   = optional(string)
+        user_consent_display_name  = optional(string)
+        value                      = optional(string)
+      })))
+    })))
+    app_role = optional(list(object({
+      allowed_member_types = list(string)
+      description          = string
+      display_name         = string
+      id                   = string
+      enabled              = optional(bool)
+      value                = optional(string)
+    })))
+    feature_tags = optional(list(object({
+      custom_single_sign_on = optional(bool)
+      enterprise            = optional(bool)
+      gallery               = optional(bool)
+      hide                  = optional(bool)
+    })))
+    optional_claims = optional(list(object({
+      access_token = optional(list(object({
+        name                  = string
+        additional_properties = optional(list(string))
+        essential             = optional(bool)
+        source                = optional(string)
+      })))
+      id_token = optional(list(object({
+        name                  = string
+        additional_properties = optional(list(string))
+        essential             = optional(bool)
+        source                = optional(string)
+      })))
+      saml2_token = optional(list(object({
+        name                  = string
+        additional_properties = optional(list(string))
+        essential             = optional(bool)
+        source                = optional(string)
+      })))
+    })))
+    public_client = optional(list(object({
+      redirect_uris = optional(list(string))
+    })))
+    required_resource_access = optional(list(object({
+      resource_app_id = string
+      resource_access = optional(list(object({
+        id   = string
+        type = string
+      })))
+    })))
+    single_page_application = optional(list(object({
+      redirect_uris = optional(list(string))
+    })))
+    web = optional(list(object({
+      homepage_url  = optional(string)
+      logout_url    = optional(string)
+      redirect_uris = optional(list(string))
+      implicit_grant = optional(list(object({
+        access_token_issuance_enabled = optional(bool)
+        id_token_issuance_enabled     = optional(bool)
+      })))
+    })))
   }))
   default = []
 }
@@ -277,7 +382,28 @@ variable "invitation" {
 
 variable "service_principal" {
   type = list(object({
-    id = number
+    id                            = number
+    account_enabled               = optional(bool)
+    alternative_names             = optional(list(string))
+    app_role_assignment_required  = optional(bool)
+    client_id                     = optional(any)
+    description                   = optional(string)
+    login_url                     = optional(string)
+    notes                         = optional(string)
+    notification_email_addresses  = optional(list(string))
+    owners                        = optional(list(string))
+    preferred_single_sign_on_mode = optional(string)
+    tags                          = optional(list(string))
+    use_existing                  = optional(bool)
+    feature_tags = optional(list(object({
+      custom_single_sign_on = optional(bool)
+      enterprise            = optional(bool)
+      gallery               = optional(bool)
+      hide                  = optional(bool)
+    })))
+    saml_single_sign_on = optional(list(object({
+      relay_state = optional(string)
+    })))
   }))
   default = []
 }

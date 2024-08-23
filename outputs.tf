@@ -33,3 +33,25 @@ output "administrative_unit_role_member_id" {
     azuread_administrative_unit_role_member.this.*.id
   )
 }
+
+## APPLICATION
+
+output "application_id" {
+  value = try(
+    azuread_application.this.*.id
+  )
+}
+
+output "application_display_name" {
+  value = try(
+    azuread_application.this.*.display_name
+  )
+}
+
+## SERVICE PRINCIPAL
+
+output "service_principal_id" {
+  value = try(
+    azuread_service_principal.this.*.id
+  )
+}

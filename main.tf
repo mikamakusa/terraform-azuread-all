@@ -255,99 +255,354 @@ resource "azuread_application_known_clients" "this" {
 }
 
 resource "azuread_application_optional_claims" "this" {
-  application_id = ""
+  count          = length(var.application) == 0 ? 0 : length(var.application_optional_claims)
+  application_id = try(element(azuread_application.this.*.id, lookup(var.application_optional_claims[count.index], "application_id")))
 
   dynamic "access_token" {
-    for_each = ""
+    for_each = try(lookup(var.application_optional_claims[count.index], "access_token") == null ? [] : ["access_token"])
     content {
-      name = ""
+      name                  = lookup(access_token.value, "name")
+      additional_properties = lookup(access_token.value, "additional_properties")
+      essential             = lookup(access_token.value, "essential")
+      source                = lookup(access_token.value, "source")
     }
   }
 
   dynamic "id_token" {
-    for_each = ""
-    content {}
+    for_each = try(lookup(var.application_optional_claims[count.index], "id_token") == null ? [] : ["id_token"])
+    content {
+      name                  = lookup(id_token.value, "name")
+      additional_properties = lookup(id_token.value, "additional_properties")
+      essential             = lookup(id_token.value, "essential")
+      source                = lookup(id_token.value, "source")
+    }
   }
 
   dynamic "saml2_token" {
-    for_each = ""
-    content {}
+    for_each = try(lookup(var.application_optional_claims[count.index], "saml2_token") == null ? [] : ["saml2_token"])
+    content {
+      name                  = lookup(saml2_token.value, "name")
+      additional_properties = lookup(saml2_token.value, "additional_properties")
+      essential             = lookup(saml2_token.value, "essential")
+      source                = lookup(saml2_token.value, "source")
+    }
   }
 }
 
 resource "azuread_application_owner" "this" {
-  application_id  = ""
-  owner_object_id = ""
+  count           = (length(var.application) && length(var.user)) == 0 ? 0 : length(var.application_owner)
+  application_id  = try(element(azuread_application.this.*.id, lookup(var.application_owner[count.index], "application_id")))
+  owner_object_id = try(element(azuread_user.this.*.object_id, lookup(var.application_owner[count.index], "owner_object_id")))
 }
 
-resource "azuread_application_password" "this" {}
+resource "azuread_application_password" "this" {
+  count               = length(var.application_password)
+  application_id      = try(element(azuread_application.this.*.id, lookup(var.application_password[count.index], "application_id")))
+  display_name        = lookup(var.application_password[count.index], "display_name")
+  end_date            = lookup(var.application_password[count.index], "end_date")
+  end_date_relative   = lookup(var.application_password[count.index], "end_date_relative")
+  rotate_when_changed = lookup(var.application_password[count.index], "rotate_when_changed")
+  start_date          = lookup(var.application_password[count.index], "start_date")
+}
 
 resource "azuread_application_permission_scope" "this" {
-  admin_consent_description  = ""
-  admin_consent_display_name = ""
-  application_id             = ""
-  scope_id                   = ""
-  value                      = ""
+  count                      = length(var.application) == 0 ? 0 : length(var.application_permission_scope)
+  admin_consent_description  = lookup(var.application_permission_scope[count.index], "admin_consent_description")
+  admin_consent_display_name = lookup(var.application_permission_scope[count.index], "admin_consent_display_name")
+  application_id             = try(element(azuread_application.this.*.id, lookup(var.application_permission_scope[count.index], "application_id")))
+  scope_id                   = lookup(var.application_permission_scope[count.index], "scope_id")
+  value                      = lookup(var.application_permission_scope[count.index], "value")
+  type                       = lookup(var.application_permission_scope[count.index], "type")
+  user_consent_description   = lookup(var.application_permission_scope[count.index], "user_consent_description")
+  user_consent_display_name  = lookup(var.application_permission_scope[count.index], "user_consent_display_name")
 }
 
 resource "azuread_application_pre_authorized" "this" {
-  permission_ids = []
+  count                = (length(var.application) && length(var.application_registration)) == 0 ? 0 : length(var.application_pre_authorized)
+  permission_ids       = lookup(var.application_pre_authorized[count.index], "permission_ids")
+  application_id       = try(element(azuread_application.this.*.id, lookup(var.application_pre_authorized[count.index], "application_id")))
+  authorized_client_id = try(element(azuread_application_registration.this.*.client_id, lookup(var.application_pre_authorized[count.index], "authorized_client_id")))
 }
 
 resource "azuread_application_redirect_uris" "this" {
-  application_id = ""
-  redirect_uris  = []
-  type           = ""
+  count          = length(var.application) == 0 ? 0 : length(var.application_redirect_uris)
+  application_id = try(element(azuread_application.this.*.id, lookup(var.application_redirect_uris[count.index], "application_id")))
+  redirect_uris  = lookup(var.application_redirect_uris[count.index], "redirect_uris")
+  type           = lookup(var.application_redirect_uris[count.index], "type")
 }
 
 resource "azuread_application_registration" "this" {
-  display_name = ""
+  count                                  = length(var.application_registration)
+  display_name                           = lookup(var.application_registration[count.index], "display_name")
+  description                            = lookup(var.application_registration[count.index], "description")
+  group_membership_claims                = lookup(var.application_registration[count.index], "group_membership_claims")
+  homepage_url                           = lookup(var.application_registration[count.index], "homepage_url")
+  implicit_access_token_issuance_enabled = lookup(var.application_registration[count.index], "implicit_access_token_issuance_enabled")
+  implicit_id_token_issuance_enabled     = lookup(var.application_registration[count.index], "implicit_id_token_issuance_enabled")
+  logout_url                             = lookup(var.application_registration[count.index], "logout_url")
+  marketing_url                          = lookup(var.application_registration[count.index], "marketing_url")
+  notes                                  = lookup(var.application_registration[count.index], "notes")
+  privacy_statement_url                  = lookup(var.application_registration[count.index], "privacy_statement_url")
+  requested_access_token_version         = lookup(var.application_registration[count.index], "requested_access_token_version")
+  service_management_reference           = lookup(var.application_registration[count.index], "service_management_reference")
+  sign_in_audience                       = lookup(var.application_registration[count.index], "sign_in_audience")
+  support_url                            = lookup(var.application_registration[count.index], "support_url")
+  terms_of_service_url                   = lookup(var.application_registration[count.index], "terms_of_service_url")
 }
 
 resource "azuread_conditional_access_policy" "this" {
-  display_name = ""
-  state        = ""
+  count        = length(var.conditional_access_policy)
+  display_name = lookup(var.conditional_access_policy[count.index], "display_name")
+  state        = lookup(var.conditional_access_policy[count.index], "state")
+
+  dynamic "conditions" {
+    for_each = try(lookup(var.conditional_access_policy[count.index], "conditions") == null ? [] : ["conditions"])
+    content {
+      client_app_types              = lookup(conditions.value, "client_app_types")
+      service_principal_risk_levels = lookup(conditions.value, "service_principal_risk_levels")
+      sign_in_risk_levels           = lookup(conditions.value, "sign_in_risk_levels")
+      user_risk_levels              = lookup(conditions.value, "user_risk_levels")
+
+      dynamic "applications" {
+        for_each = try(lookup(conditions.value, "applications") == null ? [] : ["applications"])
+        iterator = app
+        content {
+          excluded_applications = lookup(app.value, "excluded_applications")
+          included_applications = lookup(app.value, "included_user_actions") != null ? null : lookup(app.value, "included_applications")
+          included_user_actions = lookup(app.value, "included_applications") != null ? null : lookup(app.value, "included_user_actions")
+        }
+      }
+      dynamic "client_applications" {
+        for_each = try(lookup(conditions.value, "client_applications") == null ? [] : ["client_applications"])
+        iterator = cli
+        content {
+          excluded_service_principals = lookup(cli.value, "excluded_service_principals")
+          included_service_principals = lookup(cli.value, "included_service_principals")
+        }
+      }
+      dynamic "devices" {
+        for_each = try(lookup(conditions.value, "devices") == null ? [] : ["devices"])
+        iterator = dev
+        content {
+          dynamic "filter" {
+            for_each = try(lookup(dev.value, "filter") == null ? [] : ["filter"])
+            content {
+              mode = lookup(filter.value, "mode")
+              rule = lookup(filter.value, "rule")
+            }
+          }
+        }
+      }
+      dynamic "locations" {
+        for_each = try(lookup(conditions.value, "locations") == null ? [] : ["locations"])
+        iterator = loc
+        content {
+          included_locations = lookup(loc.value, "included_locations")
+          excluded_locations = lookup(loc.value, "excluded_locations")
+
+        }
+      }
+      dynamic "platforms" {
+        for_each = try(lookup(conditions.value, "platforms") == null ? [] : ["platforms"])
+        iterator = pla
+        content {
+          included_platforms = lookup(pla.value, "included_platforms")
+          excluded_platforms = lookup(pla.value, "excluded_platforms")
+        }
+      }
+      dynamic "users" {
+        for_each = try(lookup(conditions.value, "users") == null ? [] : ["users"])
+        content {
+          excluded_groups = lookup(users.value, "excluded_groups")
+          excluded_roles  = lookup(users.value, "excluded_roles")
+          excluded_users  = lookup(users.value, "excluded_users")
+          included_groups = lookup(users.value, "included_groups")
+          included_roles  = lookup(users.value, "included_roles")
+          included_users  = lookup(users.value, "included_users")
+
+          dynamic "excluded_guests_or_external_users" {
+            for_each = try(lookup(users.value, "excluded_guests_or_external_users") == null ? [] : ["excluded_guests_or_external_users"])
+            iterator = ex
+            content {
+              guest_or_external_user_types = lookup(ex.value, "guest_or_external_user_types")
+
+              dynamic "external_tenants" {
+                for_each = try(lookup(ex.value, "external_tenants") == null ? [] : ["external_tenants"])
+                iterator = ext
+                content {
+                  membership_kind = lookup(ext.value, "membership_kind")
+                  members         = lookup(ext.value, "members")
+                }
+              }
+            }
+          }
+
+          dynamic "included_guests_or_external_users" {
+            for_each = try(lookup(users.value, "included_guests_or_external_users") == null ? [] : ["included_guests_or_external_users"])
+            iterator = ex
+            content {
+              guest_or_external_user_types = lookup(ex.value, "guest_or_external_user_types")
+
+              dynamic "external_tenants" {
+                for_each = try(lookup(ex.value, "external_tenants") == null ? [] : ["external_tenants"])
+                iterator = ext
+                content {
+                  membership_kind = lookup(ext.value, "membership_kind")
+                  members         = lookup(ext.value, "members")
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  dynamic "grant_controls" {
+    for_each = try(lookup(var.conditional_access_policy[count.index], "grant_controls") == null ? [] : ["grant_controls"])
+    iterator = grant
+    content {
+      operator                          = lookup(grant.value, "operator")
+      authentication_strength_policy_id = lookup(grant.value, "authentication_strength_policy_id")
+      built_in_controls                 = lookup(grant.value, "built_in_controls")
+      custom_authentication_factors     = lookup(grant.value, "custom_authentication_factors")
+      terms_of_use                      = lookup(grant.value, "terms_of_use")
+    }
+  }
+
+  dynamic "session_controls" {
+    for_each = try(lookup(var.conditional_access_policy[count.index], "session_controls") == null ? [] : ["session_controls"])
+    iterator = session
+    content {
+      application_enforced_restrictions_enabled = lookup(session.value, "application_enforced_restrictions_enabled")
+      cloud_app_security_policy                 = lookup(session.value, "cloud_app_security_policy")
+      disable_resilience_defaults               = lookup(session.value, "disable_resilience_defaults")
+      persistent_browser_mode                   = lookup(session.value, "persistent_browser_mode")
+      sign_in_frequency                         = lookup(session.value, "sign_in_frequency")
+      sign_in_frequency_authentication_type     = lookup(session.value, "sign_in_frequency_authentication_type")
+      sign_in_frequency_interval                = lookup(session.value, "sign_in_frequency_interval")
+      sign_in_frequency_period                  = lookup(session.value, "sign_in_frequency_period")
+    }
+  }
 }
 
 resource "azuread_named_location" "this" {
-  display_name = ""
+  count        = length(var.named_location)
+  display_name = lookup(var.named_location[count.index], "display_name")
+
+  dynamic "country" {
+    for_each = try(lookup(var.named_location[count.index], "country") == null ? [] : ["country"])
+    content {
+      countries_and_regions                 = lookup(country.value, "countries_and_regions")
+      include_unknown_countries_and_regions = lookup(country.value, "include_unknown_countries_and_regions")
+    }
+  }
+
+  dynamic "ip" {
+    for_each = try(lookup(var.named_location[count.index], "ip") == null ? [] : ["ip"])
+    content {
+      ip_ranges = lookup(ip.value, "ip_ranges")
+      trusted   = lookup(ip.value, "trusted")
+    }
+  }
 }
 
 resource "azuread_service_principal_delegated_permission_grant" "this" {
-  claim_values                         = []
-  resource_service_principal_object_id = ""
-  service_principal_object_id          = ""
+  count                                = length(var.service_principal) == 0 ? 0 : length(var.service_principal_delegated_permission_grant)
+  claim_values                         = lookup(var.service_principal_delegated_permission_grant[count.index], "claim_values")
+  resource_service_principal_object_id = try(element(azuread_service_principal.this.*.id, lookup(var.service_principal_delegated_permission_grant[count.index], "service_principal_id")))
+  service_principal_object_id          = try(element(azuread_service_principal.this.*.id, lookup(var.service_principal_delegated_permission_grant[count.index], "service_principal_id")))
+  user_object_id                       = try(element(azuread_user.this.*.object_id, lookup(var.service_principal_delegated_permission_grant[count.index], "user_id")))
 }
 
 resource "azuread_custom_directory_role" "this" {
-  display_name = ""
-  enabled      = false
-  version      = ""
+  count        = length(var.custom_directory_role)
+  display_name = lookup(var.custom_directory_role[count.index], "display_name")
+  enabled      = lookup(var.custom_directory_role[count.index], "enabled")
+  version      = lookup(var.custom_directory_role[count.index], "version")
+  description  = lookup(var.custom_directory_role[count.index], "description")
+  #template_id  = ""
+
+  dynamic "permissions" {
+    for_each = lookup(var.custom_directory_role[count.index], "permissions")
+    iterator = perm
+    content {
+      allowed_resource_actions = lookup(perm.value, "allowed_resource_actions")
+    }
+  }
 }
 
-resource "azuread_directory_role" "this" {}
+resource "azuread_directory_role" "this" {
+  count        = length(var.directory_role)
+  display_name = lookup(var.directory_role[count.index], "display_name")
+  template_id  = lookup(var.directory_role[count.index], "template_id")
+}
 
 resource "azuread_directory_role_assignment" "this" {
-  principal_object_id = ""
-  role_id             = ""
+  count               = (length(var.user) && (length(var.directory_role) || length(var.custom_directory_role))) == 0 ? 0 : length(var.directory_role_assignment)
+  principal_object_id = try(element(azuread_user.this.*.object_id, lookup(var.directory_role_assignment[count.index], "principal_object_id")))
+  role_id = try(
+    length(var.directory_role) != null ? element(azuread_directory_role.this.*.template_id, lookup(var.directory_role_assignment[count.index], "role_id")) :
+    element(azuread_custom_directory_role.this.*.object_id, lookup(var.directory_role_assignment[count.index], "role_id"))
+  )
+  #app_scope_id        = ""
+  directory_scope_id = format("/%s", try(element(azuread_application.this.*.object_id, lookup(var.directory_role_assignment[count.index], "application_id"))))
 }
 
 resource "azuread_directory_role_eligibility_schedule_request" "this" {
-  directory_scope_id = ""
-  justification      = ""
-  principal_id       = ""
-  role_definition_id = ""
+  count              = (length(var.user) && length(var.directory_role)) == 0 ? 0 : length(var.directory_role_eligibility_schedule_request)
+  directory_scope_id = lookup(var.directory_role_eligibility_schedule_request[count.index], "directory_scope_id")
+  justification      = lookup(var.directory_role_eligibility_schedule_request[count.index], "justification")
+  principal_id       = try(element(azuread_user.this.*.object_id, lookup(var.directory_role_eligibility_schedule_request[count.index], "principal_id")))
+  role_definition_id = try(element(azuread_directory_role.this.*.template_id, lookup(var.directory_role_eligibility_schedule_request[count.index], "role_definition_id")))
 }
 
-resource "azuread_directory_role_member" "this" {}
+resource "azuread_directory_role_member" "this" {
+  count            = length(var.directory_role_member)
+  member_object_id = try(element(azuread_user.this.*.object_id, lookup(var.directory_role_member[count.index], "member_object_id")))
+  role_object_id   = try(element(azuread_directory_role.this.*.object_id, lookup(var.directory_role_member[count.index], "role_object_id")))
+}
 
 resource "azuread_group" "this" {
-  display_name = ""
+  count                      = length(var.group)
+  display_name               = lookup(var.group[count.index], "display_name")
+  administrative_unit_ids    = lookup(var.group[count.index], "administrative_unit_ids")
+  assignable_to_role         = lookup(var.group[count.index], "assignable_to_role")
+  auto_subscribe_new_members = lookup(var.group[count.index], "auto_subscribe_new_members")
+  behaviors                  = lookup(var.group[count.index], "behaviors")
+  description                = lookup(var.group[count.index], "description")
+  external_senders_allowed   = lookup(var.group[count.index], "external_senders_allowed")
+  hide_from_address_lists    = lookup(var.group[count.index], "hide_from_address_lists")
+  hide_from_outlook_clients  = lookup(var.group[count.index], "hide_from_outlook_clients")
+  mail_enabled               = lookup(var.group[count.index], "mail_enabled")
+  mail_nickname              = lookup(var.group[count.index], "mail_nickname")
+  members                    = [try(element(azuread_user.this.*.object_id, lookup(var.group[count.index], "members")))]
+  onpremises_group_type      = lookup(var.group[count.index], "onpremises_group_type")
+  owners = [
+    data.azuread_client_config.this.object_id,
+    try(element(azuread_user.this.*.object_id, lookup(var.group[count.index], "user_id")))
+  ]
+  prevent_duplicate_names = lookup(var.group[count.index], "prevent_duplicate_names")
+  provisioning_options    = lookup(var.group[count.index], "provisioning_options")
+  security_enabled        = lookup(var.group[count.index], "security_enabled")
+  theme                   = lookup(var.group[count.index], "theme")
+  types                   = lookup(var.group[count.index], "types")
+  visibility              = lookup(var.group[count.index], "visibility")
+  writeback_enabled       = lookup(var.group[count.index], "writeback_enabled")
+
+  dynamic "dynamic_membership" {
+    for_each = lookup(var.group[count.index], "members") != null ? [] : lookup(var.group[count.index], "dynamic_membership")
+    content {
+      enabled = lookup(dynamic_membership.value, "enabled")
+      rule    = lookup(dynamic_membership.value, "rule")
+    }
+  }
 }
 
 resource "azuread_group_member" "this" {
-  group_object_id  = ""
-  member_object_id = ""
+  count            = (length(var.group) && length(var.user)) == 0 ? 0 : length(var.group_member)
+  group_object_id  = try(element(azuread_group.this.*.id, lookup(var.group_member[count.index], "group_object_id")))
+  member_object_id = try(element(azuread_user.this.*.id, lookup(var.group_member[count.index], "member_object_id")))
 }
 
 resource "azuread_access_package" "this" {

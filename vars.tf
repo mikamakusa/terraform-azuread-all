@@ -259,119 +259,437 @@ variable "application_known_clients" {
 
 variable "application_optional_claims" {
   type = list(object({
-    id = number
+    id             = number
+    application_id = any
+    access_token = optional(list(object({
+      name                  = string
+      additional_properties = optional(list(string))
+      essential             = optional(bool)
+      source                = optional(string)
+    })))
+    id_token = optional(list(object({
+      name                  = string
+      additional_properties = optional(list(string))
+      essential             = optional(bool)
+      source                = optional(string)
+    })))
+    saml2_token = optional(list(object({
+      name                  = string
+      additional_properties = optional(list(string))
+      essential             = optional(bool)
+      source                = optional(string)
+    })))
   }))
   default = []
+
+  validation {
+    condition = length([
+      for a in var.application_optional_claims : true if contains(["cloud_displayname", "dns_domain_and_sam_account_name", "emit_as_roles", "include_externally_authenticated_upn_without_hash", "include_externally_authenticated_upn", "max_size_limit", "netbios_domain_and_sam_account_name", "on_premise_security_identifier", "sam_account_name", "use_guid"], a.access_token.additional_properties)
+    ]) == length(var.application_optional_claims)
+    error_message = "Possible values are: cloud_displayname, dns_domain_and_sam_account_name, emit_as_roles, include_externally_authenticated_upn_without_hash, include_externally_authenticated_upn, max_size_limit, netbios_domain_and_sam_account_name, on_premise_security_identifier, sam_account_name, and use_guid."
+  }
+
+  validation {
+    condition = length([
+      for b in var.application_optional_claims : true if contains(["cloud_displayname", "dns_domain_and_sam_account_name", "emit_as_roles", "include_externally_authenticated_upn_without_hash", "include_externally_authenticated_upn", "max_size_limit", "netbios_domain_and_sam_account_name", "on_premise_security_identifier", "sam_account_name", "use_guid"], b.id_token.additional_properties)
+    ]) == length(var.application_optional_claims)
+    error_message = "Possible values are: cloud_displayname, dns_domain_and_sam_account_name, emit_as_roles, include_externally_authenticated_upn_without_hash, include_externally_authenticated_upn, max_size_limit, netbios_domain_and_sam_account_name, on_premise_security_identifier, sam_account_name, and use_guid."
+  }
+
+  validation {
+    condition = length([
+      for c in var.application_optional_claims : true if contains(["cloud_displayname", "dns_domain_and_sam_account_name", "emit_as_roles", "include_externally_authenticated_upn_without_hash", "include_externally_authenticated_upn", "max_size_limit", "netbios_domain_and_sam_account_name", "on_premise_security_identifier", "sam_account_name", "use_guid"], c.saml2_token.additional_properties)
+    ]) == length(var.application_optional_claims)
+    error_message = "Possible values are: cloud_displayname, dns_domain_and_sam_account_name, emit_as_roles, include_externally_authenticated_upn_without_hash, include_externally_authenticated_upn, max_size_limit, netbios_domain_and_sam_account_name, on_premise_security_identifier, sam_account_name, and use_guid."
+  }
 }
 
 variable "application_owner" {
   type = list(object({
-    id = number
+    id              = number
+    application_id  = any
+    owner_object_id = any
   }))
   default = []
 }
 
 variable "application_password" {
   type = list(object({
-    id = number
+    id                  = number
+    application_id      = optional(any)
+    display_name        = optional(string)
+    end_date            = optional(string)
+    end_date_relative   = optional(string)
+    rotate_when_changed = optional(map(any))
+    start_date          = optional(string)
   }))
   default = []
 }
 
 variable "application_permission_scope" {
   type = list(object({
-    id = number
+    id                         = number
+    admin_consent_description  = string
+    admin_consent_display_name = string
+    application_id             = any
+    scope_id                   = string
+    value                      = string
+    type                       = string
+    user_consent_description   = string
+    user_consent_display_name  = string
   }))
   default = []
 }
 
 variable "application_pre_authorized" {
   type = list(object({
-    id = number
+    id                   = number
+    permission_ids       = list(any)
+    application_id       = any
+    authorized_client_id = any
   }))
   default = []
 }
 
 variable "application_redirect_uris" {
   type = list(object({
-    id = number
+    id             = number
+    application_id = any
+    redirect_uris  = list(string)
+    type           = string
   }))
   default = []
 }
 
 variable "application_registration" {
   type = list(object({
-    id = number
+    id                                     = number
+    display_name                           = string
+    description                            = optional(string)
+    group_membership_claims                = optional(list(string))
+    homepage_url                           = optional(string)
+    implicit_access_token_issuance_enabled = optional(bool)
+    implicit_id_token_issuance_enabled     = optional(bool)
+    logout_url                             = optional(string)
+    marketing_url                          = optional(string)
+    notes                                  = optional(string)
+    privacy_statement_url                  = optional(string)
+    requested_access_token_version         = optional(number)
+    service_management_reference           = optional(string)
+    sign_in_audience                       = optional(string)
+    support_url                            = optional(string)
+    terms_of_service_url                   = optional(string)
   }))
   default = []
 }
 
 variable "conditional_access_policy" {
   type = list(object({
-    id = number
+    id           = number
+    display_name = string
+    state        = string
+    conditions = optional(list(object({
+      client_app_types              = list(string)
+      service_principal_risk_levels = list(string)
+      sign_in_risk_levels           = list(string)
+      user_risk_levels              = list(string)
+      applications = optional(list(object({
+        excluded_applications = optional(list(string))
+        included_applications = optional(list(string))
+        included_user_actions = optional(list(string))
+      })))
+      client_applications = optional(list(object({
+        excluded_service_principals = optional(list(string))
+        included_service_principals = optional(list(string))
+      })))
+      devices = optional(list(object({
+        filter = optional(list(object({
+          mode = string
+          rule = string
+        })))
+      })))
+      locations = optional(list(object({
+        included_locations = list(string)
+        excluded_locations = optional(list(string))
+      })))
+      platforms = optional(list(object({
+        included_platforms = list(string)
+        excluded_platforms = optional(list(string))
+      })))
+      users = optional(list(object({
+        excluded_groups = optional(list(string))
+        excluded_roles  = optional(list(string))
+        excluded_users  = optional(list(string))
+        included_groups = optional(list(string))
+        included_roles  = optional(list(string))
+        included_users  = optional(list(string))
+        excluded_guests_or_external_users = optional(list(object({
+          guestçor_external_user_type = list(string)
+          external_tenants = optional(list(object({
+            membership_kind = string
+            members         = optional(list(string))
+          })))
+        })))
+        included_guests_or_external_users = optional(list(object({
+          guestçor_external_user_type = list(string)
+          external_tenants = optional(list(object({
+            membership_kind = string
+            members         = optional(list(string))
+          })))
+        })))
+      })))
+    })))
+    grant_controls = optional(list(object({
+      operator                          = string
+      authentication_strength_policy_id = optional(string)
+      built_in_controls                 = optional(list(string))
+      custom_authentication_factors     = optional(list(string))
+      terms_of_use                      = optional(list(string))
+    })))
+    session_controls = optional(list(object({
+      application_enforced_restrictions_enabled = optional(bool)
+      cloud_app_security_policy                 = optional(string)
+      disable_resilience_defaults               = optional(bool)
+      persistent_browser_mode                   = optional(string)
+      sign_in_frequency                         = optional(number)
+      sign_in_frequency_authentication_type     = optional(string)
+      sign_in_frequency_interval                = optional(string)
+      sign_in_frequency_period                  = optional(string)
+    })))
   }))
   default = []
+
+  validation {
+    condition = length([
+      for a in var.conditional_access_policy : true if contains(["enabled", "disabled", "enabledForReportingButNotEnforced"], a.state)
+    ]) == length(var.conditional_access_policy)
+    error_message = "Possible values are : enabled, disabled and enabledForReportingButNotEnforced."
+  }
+
+  validation {
+    condition = length([
+      for b in var.conditional_access_policy : true if contains(["all", "browser", "mobileAppsAndDesktopClients", "exchangeActiveSync", "easSupported", "other"], b.conditions.client_app_types)
+    ])
+    error_message = "Possible values are: all, browser, mobileAppsAndDesktopClients, exchangeActiveSync, easSupported and other."
+  }
+
+  validation {
+    condition = length([
+      for c in var.conditional_access_policy : true if contains(["low", "medium", "high", "none", "unknownFutureValue"], c.conditions.service_principal_risk_levels)
+    ])
+    error_message = "Possible values are: low, medium, high, none, unknownFutureValue."
+  }
+
+  validation {
+    condition = length([
+      for d in var.conditional_access_policy : true if contains(["low", "medium", "high", "hidden", "none", "unknownFutureValue"], d.conditions.sign_in_risk_levels)
+    ])
+    error_message = "Possible values are: low, medium, high, hidden, none, unknownFutureValue."
+  }
+
+  validation {
+    condition = length([
+      for e in var.conditional_access_policy : true if contains(["low", "medium", "high", "hidden", "none", "unknownFutureValue"], e.conditions.user_risk_levels)
+    ])
+    error_message = "Possible values are: low, medium, high, hidden, none, unknownFutureValue."
+  }
+
+  validation {
+    condition = length([
+      for f in var.conditional_access_policy : true if contains(["included_applications", "included_user_actions"], f.conditions.applications.included_applications)
+    ])
+    error_message = "One of included_applications or included_user_actions must be specified."
+  }
+
+  validation {
+    condition = length([
+      for g in var.conditional_access_policy : true if contains(["urn:user:registerdevice", "urn:user:registersecurityinfo"], g.conditions.applications.included_user_actions)
+    ])
+    error_message = "Supported values are urn:user:registerdevice and urn:user:registersecurityinfo."
+  }
+
+  validation {
+    condition = length([
+      for h in var.conditional_access_policy : true if contains(["include", "exclude"], h.conditions.devices.filter.mode)
+    ])
+    error_message = "Supported values are include and exclude."
+  }
+
+  validation {
+    condition = length([
+      for i in var.conditional_access_policy : true if contains(["all", "android", "iOS", "linux", "macOS", "windows", "windowsPhone", "unknownFutureValue"], i.conditions.platforms.excluded_platforms)
+    ])
+    error_message = "Possible values are: all, android, iOS, linux, macOS, windows, windowsPhone or unknownFutureValue."
+  }
+
+  validation {
+    condition = length([
+      for j in var.conditional_access_policy : true if contains(["all", "android", "iOS", "linux", "macOS", "windows", "windowsPhone", "unknownFutureValue"], j.conditions.platforms.included_platforms)
+    ])
+    error_message = "Possible values are: all, android, iOS, linux, macOS, windows, windowsPhone or unknownFutureValue."
+  }
+
+  validation {
+    condition = length([
+      for k in var.conditional_access_policy : true if contains(["block", "mfa", "approvedApplication", "compliantApplication", "compliantDevice", "domainJoinedDevice", "passwordChange", "unknownFutureValue"], k.grant_controls.built_in_controls)
+    ])
+    error_message = "Possible values are: block, mfa, approvedApplication, compliantApplication, compliantDevice, domainJoinedDevice, passwordChange or unknownFutureValue."
+  }
+
+  validation {
+    condition = length([
+      for l in var.conditional_access_policy : true if contains(["blockDownloads", "mcasConfigured", "monitorOnly", "unknownFutureValue"], l.session_controls.cloud_app_security_policy)
+    ])
+    error_message = "Possible values are: blockDownloads, mcasConfigured, monitorOnly or unknownFutureValue."
+  }
+
+  validation {
+    condition = length([
+      for l in var.conditional_access_policy : true if contains(["always", "never"], l.session_controls.persistent_browser_mode)
+    ])
+    error_message = "Possible values are: always, never."
+  }
+
+  validation {
+    condition = length([
+      for l in var.conditional_access_policy : true if contains(["primaryAndSecondaryAuthentication", "secondaryAuthentication"], l.session_controls.sign_in_frequency_authentication_type)
+    ])
+    error_message = "Possible values are: primaryAndSecondaryAuthentication or secondaryAuthentication."
+  }
+
+  validation {
+    condition = length([
+      for m in var.conditional_access_policy : true if contains(["timeBased", "everyTime"], m.session_controls.sign_in_frequency_interval)
+    ])
+    error_message = "Possible values are: timeBased or everyTime."
+  }
+
+  validation {
+    condition = length([
+      for m in var.conditional_access_policy : true if contains(["hours", "days"], m.session_controls.sign_in_frequency_period)
+    ])
+    error_message = "Possible values are: timeBased or everyTime."
+  }
 }
 
 variable "named_location" {
   type = list(object({
-    id = number
+    id           = number
+    display_name = string
+    country = optional(list(object({
+      countries_and_regions                 = list(string)
+      include_unknown_countries_and_regions = optional(bool)
+    })))
+    ip = optional(list(object({
+      ip_ranges = list(string)
+      trusted   = optional(bool)
+    })))
   }))
   default = []
 }
 
 variable "service_principal_delegated_permission_grant" {
   type = list(object({
-    id = number
+    id                   = number
+    claim_values         = list(string)
+    service_principal_id = any
+    user_id              = optional(any)
   }))
   default = []
 }
 
 variable "custom_directory_role" {
   type = list(object({
-    id = number
+    id           = number
+    display_name = string
+    enabled      = bool
+    version      = string
+    description  = optional(string)
+    template_id  = optional(string)
+    permissions = list(object({
+      allowed_resource_actions = list(string)
+    }))
   }))
   default = []
 }
 
 variable "directory_role" {
   type = list(object({
-    id = number
+    id           = number
+    display_name = optional(string)
+    template_id  = optional(string)
   }))
   default = []
 }
 
 variable "directory_role_assignment" {
   type = list(object({
-    id = number
+    id                  = number
+    principal_object_id = any
+    role_id             = any
+    app_scope_id        = optional(any)
+    application_id      = optional(any)
   }))
   default = []
 }
 
 variable "directory_role_eligibility_schedule_request" {
   type = list(object({
-    id = number
+    id                 = number
+    directory_scope_id = string
+    justification      = string
+    principal_id       = any
+    role_definition_id = any
   }))
   default = []
 }
 
 variable "directory_role_member" {
   type = list(object({
-    id = number
+    id               = number
+    member_object_id = optional(any)
+    role_object_id   = optional(any)
   }))
   default = []
 }
 
 variable "group" {
   type = list(object({
-    id = number
+    id                         = number
+    display_name               = string
+    administrative_unit_ids    = optional(list(string))
+    assignable_to_role         = optional(bool)
+    auto_subscribe_new_members = optional(bool)
+    behaviors                  = optional(list(string))
+    description                = optional(string)
+    external_senders_allowed   = optional(bool)
+    hide_from_address_lists    = optional(bool)
+    hide_from_outlook_clients  = optional(bool)
+    mail_enabled               = optional(bool)
+    mail_nickname              = optional(string)
+    members                    = optional(list(any))
+    onpremises_group_type      = optional(string)
+    user_id                    = optional(list(any))
+    prevent_duplicate_names    = optional(bool)
+    provisioning_options       = optional(list(string))
+    security_enabled           = optional(bool)
+    theme                      = optional(string)
+    types                      = optional(list(string))
+    visibility                 = optional(string)
+    writeback_enabled          = optional(bool)
+    dynamic_membership = optional(list(object({
+      enabled = bool
+      role    = string
+    })))
   }))
   default = []
 }
 
 variable "group_member" {
   type = list(object({
-    id = number
+    id               = number
+    group_object_id  = any
+    member_object_id = any
   }))
   default = []
 }

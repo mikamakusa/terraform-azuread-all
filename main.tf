@@ -20,9 +20,10 @@ resource "azuread_administrative_unit_role_member" "this" {
 }
 
 resource "azuread_app_role_assignment" "this" {
-  app_role_id         = ""
-  principal_object_id = ""
-  resource_object_id  = ""
+  count               = length(var.service_principal) == 0 ? 0 : length(var.app_role_assignment)
+  app_role_id         = try(element(azuread_service_principal.this.*.app_role_ids, lookup(var.app_role_assignment[count.index], "app_role_id")))
+  principal_object_id = try(element(azuread_service_principal.this.*.object_id, lookup(var.app_role_assignment[count.index], "principal_object_id")))
+  resource_object_id  = try(element(azuread_service_principal.this.*.object_id, lookup(var.app_role_assignment[count.index], "resource_object_id")))
 }
 
 resource "azuread_application" "this" {
@@ -192,55 +193,86 @@ resource "azuread_application" "this" {
 }
 
 resource "azuread_application_api_access" "this" {
-  api_client_id  = ""
-  application_id = azuread_application_registration.this.id
+  count          = length(var.application_registration) == 0 ? 0 : length(var.application_api_access)
+  api_client_id  = data.azuread_application_published_app_ids.this.result
+  application_id = try(element(azuread_application_registration.this.*.id, lookup(var.application_api_access[count.index], "application_id")))
+  role_ids       = try(element(azuread_service_principal.this.*.app_role_ids, lookup(var.application_api_access[count.index], "role_ids")))
+  scope_ids      = try(element(azuread_service_principal.this.*.oauth2_permission_scope_ids, lookup(var.application_api_access[count.index], "scope_ids")))
 }
 
 resource "azuread_application_app_role" "this" {
-  allowed_member_types = []
-  application_id       = azuread_application_registration.this.id
-  description          = ""
-  display_name         = ""
-  role_id              = ""
+  count                = length(var.application) == 0 ? 0 : length(var.application_app_role)
+  allowed_member_types = lookup(var.application_app_role[count.index], "allowed_member_types")
+  application_id       = try(element(azuread_application.this.*.id, lookup(var.application_app_role[count.index], "application_id")))
+  description          = lookup(var.application_app_role[count.index], "description")
+  display_name         = lookup(var.application_app_role[count.index], "display_name")
+  role_id              = lookup(var.application_app_role[count.index], "role_id")
+  value                = lookup(var.application_app_role[count.index], "value")
 }
 
 resource "azuread_application_certificate" "this" {
-  value = ""
+  count          = (length(var.application) && length(var.certificate)) == 0 ? 0 : length(var.application_certificate)
+  value          = try(element(module.keyvault.*.certificate_attribute_data, lookup(var.application_certificate[count.index], "")))
+  application_id = try(element(azuread_application.this.*.id, lookup(var.application_certificate[count.index], "application_id")))
+  type           = lookup(var.application_certificate[count.index], "type")
+  encoding       = lookup(var.application_certificate[count.index], "encoding")
+  end_date       = try(element(module.keyvault.*.certificate_attribute_expires, lookup(var.application_certificate[count.index], "certificate_id")))
+  start_date     = try(element(module.keyvault.*.certificate_attribute_not_before, lookup(var.application_certificate[count.index], "certificate_id")))
 }
 
 resource "azuread_application_fallback_public_client" "this" {
-  application_id = azuread_application_registration.this.id
-  enabled        = true
+  count          = length(var.application) == 0 ? 0 : length(var.application_fallback_public_client)
+  application_id = try(element(azuread_application.this.*.id, lookup(var.application_fallback_public_client[count.index], "application_id")))
+  enabled        = lookup(var.application_fallback_public_client[count.index], "enabled")
 }
 
 resource "azuread_application_federated_identity_credential" "this" {
-  application_id = azuread_application_registration.this.id
-  display_name   = "my-repo-deploy"
-  description    = "Deployments for my-repo"
-  audiences      = ["api://AzureADTokenExchange"]
-  issuer         = "https://token.actions.githubusercontent.com"
-  subject        = "repo:my-organization/my-repo:environment:prod"
+  count          = length(var.application) == 0 ? 0 : length(var.application_federated_identity_credential)
+  application_id = try(element(azuread_application.this.*.id, lookup(var.application_federated_identity_credential[count.index], "application_id")))
+  display_name   = lookup(var.application_federated_identity_credential[count.index], "display_name")
+  description    = lookup(var.application_federated_identity_credential[count.index], "description")
+  audiences      = lookup(var.application_federated_identity_credential[count.index], "audiences")
+  issuer         = lookup(var.application_federated_identity_credential[count.index], "issuer")
+  subject        = lookup(var.application_federated_identity_credential[count.index], "subject")
 }
 
 resource "azuread_application_from_template" "this" {
-  display_name = "this Application"
+  count        = length(var.application_from_template)
+  display_name = lookup(var.application_from_template[count.index], "display_name")
   template_id  = data.azuread_application_template.this.template_id
 }
 
 resource "azuread_application_identifier_uri" "this" {
-  application_id = azuread_application_registration.this.id
-  identifier_uri = "https://app.hashitown.com"
+  count          = length(var.application) == 0 ? 0 : length(azuread_application_identifier_uri)
+  application_id = try(element(azuread_application.this.*.id, lookup(var.application_identifier_uri[count.index], "application_id")))
+  identifier_uri = lookup(var.application_identifier_uri[count.index], "identifier_uri")
 }
 
 resource "azuread_application_known_clients" "this" {
-  application_id = azuread_application_registration.this.id
-  known_client_ids = [
-    azuread_application_registration.this.client_id,
-  ]
+  count            = (length(var.application) && length(var.application_registration)) == 0 ? 0 : length(var.application_known_clients)
+  application_id   = try(element(azuread_application.this.*.id, lookup(var.application_known_clients[count.index], "application_id")))
+  known_client_ids = [try(element(azuread_application_registration.this.*.id, lookup(var.application_known_clients[count.index], "known_client_ids")))]
 }
 
 resource "azuread_application_optional_claims" "this" {
   application_id = ""
+
+  dynamic "access_token" {
+    for_each = ""
+    content {
+      name = ""
+    }
+  }
+
+  dynamic "id_token" {
+    for_each = ""
+    content {}
+  }
+
+  dynamic "saml2_token" {
+    for_each = ""
+    content {}
+  }
 }
 
 resource "azuread_application_owner" "this" {

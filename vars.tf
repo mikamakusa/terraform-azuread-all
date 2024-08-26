@@ -5,6 +5,20 @@ variable "application_template_display_name" {
   default = null
 }
 
+## MODULES
+
+variable "resource_group_name" {
+  type = string
+}
+
+variable "certificate" {
+  type = any
+}
+
+variable "keyvault" {
+  type = any
+}
+
 ## RESOURCES
 
 variable "administrative_unit" {
@@ -151,56 +165,94 @@ variable "application" {
 
 variable "application_api_access" {
   type = list(object({
-    id = number
+    id             = number
+    api_client_id  = any
+    application_id = any
+    role_ids       = optional(list(any))
+    scope_ids      = optional(list(any))
   }))
   default = []
 }
 
 variable "application_app_role" {
   type = list(object({
-    id = number
+    id                   = number
+    allowed_member_types = list(any)
+    application_id       = any
+    description          = string
+    display_name         = string
+    role_id              = any
+    value                = optional(string)
   }))
   default = []
 }
 
 variable "application_certificate" {
   type = list(object({
-    id = number
+    id             = number
+    certificate_id = any
+    application_id = any
+    type           = string
+    encoding       = string
   }))
   default = []
+
+  validation {
+    condition     = length([for a in var.application_certificate : true if contains(["pem", "base64", "hex"], a.encoding)]) == length(var.application_certificate)
+    error_message = "Must be one of pem, base64 or hex."
+  }
+
+  validation {
+    condition     = length([for b in var.application_certificate : true if contains(["AsymmetricX509Cert", "Symmetric"], b.type)]) == length(var.application_certificate)
+    error_message = "Must be one of AsymmetricX509Cert or Symmetric."
+  }
 }
 
 variable "application_fallback_public_client" {
   type = list(object({
-    id = number
+    id             = number
+    application_id = any
+    enabled        = bool
   }))
   default = []
 }
 
 variable "application_federated_identity_credential" {
   type = list(object({
-    id = number
+    id             = number
+    application_id = any
+    display_name   = string
+    description    = string
+    audiences      = string
+    issuer         = string
+    subject        = string
   }))
   default = []
 }
 
 variable "application_from_template" {
   type = list(object({
-    id = number
+    id           = number
+    display_name = string
+    template_id  = optional(any)
   }))
   default = []
 }
 
 variable "application_identifier_uri" {
   type = list(object({
-    id = number
+    id             = number
+    application_id = any
+    identifier_uri = string
   }))
   default = []
 }
 
 variable "application_known_clients" {
   type = list(object({
-    id = number
+    id               = number
+    application_id   = any
+    known_client_ids = list(any)
   }))
   default = []
 }

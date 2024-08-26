@@ -1,0 +1,3 @@
+[submodule "modules/terraform-azure-keyvault"]
+	path = modules/terraform-azure-keyvault
+	url = git@github.com:mikamakusa/terraform-azure-keyvault.git

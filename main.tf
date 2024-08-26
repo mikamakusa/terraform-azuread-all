@@ -1,3 +1,5 @@
+## ADMINISTRATIVE UNITS
+
 resource "azuread_administrative_unit" "this" {
   count                     = length(var.administrative_unit)
   display_name              = lookup(var.administrative_unit[count.index], "display_name")
@@ -19,12 +21,16 @@ resource "azuread_administrative_unit_role_member" "this" {
   role_object_id                = try(element(azuread_directory_role.this.*.id, lookup(var.administrative_unit_role_member[count.index], "role_object_id")))
 }
 
+## APP ROLE ASSIGNMENTS
+
 resource "azuread_app_role_assignment" "this" {
   count               = length(var.service_principal) == 0 ? 0 : length(var.app_role_assignment)
   app_role_id         = try(element(azuread_service_principal.this.*.app_role_ids, lookup(var.app_role_assignment[count.index], "app_role_id")))
   principal_object_id = try(element(azuread_service_principal.this.*.object_id, lookup(var.app_role_assignment[count.index], "principal_object_id")))
   resource_object_id  = try(element(azuread_service_principal.this.*.object_id, lookup(var.app_role_assignment[count.index], "resource_object_id")))
 }
+
+## APPLICATIONS
 
 resource "azuread_application" "this" {
   count                          = length(var.application)
@@ -212,12 +218,12 @@ resource "azuread_application_app_role" "this" {
 
 resource "azuread_application_certificate" "this" {
   count          = (length(var.application) && length(var.certificate)) == 0 ? 0 : length(var.application_certificate)
-  value          = try(element(module.keyvault.*.certificate_attribute_data, lookup(var.application_certificate[count.index], "")))
+  value          = length(var.certificate) != null ? try(element(module.keyvault.*.certificate_attribute_data, lookup(var.application_certificate[count.index], "certificate_id"))) : file(join("/", [path.cwd, "certificates", lookup(var.application_certificate[count.index], "value")]))
   application_id = try(element(azuread_application.this.*.id, lookup(var.application_certificate[count.index], "application_id")))
   type           = lookup(var.application_certificate[count.index], "type")
   encoding       = lookup(var.application_certificate[count.index], "encoding")
-  end_date       = try(element(module.keyvault.*.certificate_attribute_expires, lookup(var.application_certificate[count.index], "certificate_id")))
-  start_date     = try(element(module.keyvault.*.certificate_attribute_not_before, lookup(var.application_certificate[count.index], "certificate_id")))
+  end_date       = length(var.certificate) != null ? try(element(module.keyvault.*.certificate_attribute_expires, lookup(var.application_certificate[count.index], "certificate_id"))) : lookup(var.application_certificate[count.index], "end_date")
+  start_date     = length(var.certificate) != null ? try(element(module.keyvault.*.certificate_attribute_not_before, lookup(var.application_certificate[count.index], "certificate_id"))) : lookup(var.application_certificate[count.index], "start_date")
 }
 
 resource "azuread_application_fallback_public_client" "this" {
@@ -349,6 +355,8 @@ resource "azuread_application_registration" "this" {
   support_url                            = lookup(var.application_registration[count.index], "support_url")
   terms_of_service_url                   = lookup(var.application_registration[count.index], "terms_of_service_url")
 }
+
+## CONDITIONAL ACCESS
 
 resource "azuread_conditional_access_policy" "this" {
   count        = length(var.conditional_access_policy)
@@ -507,6 +515,8 @@ resource "azuread_named_location" "this" {
   }
 }
 
+## DELETEGATED PERMISSION GRANT
+
 resource "azuread_service_principal_delegated_permission_grant" "this" {
   count                                = length(var.service_principal) == 0 ? 0 : length(var.service_principal_delegated_permission_grant)
   claim_values                         = lookup(var.service_principal_delegated_permission_grant[count.index], "claim_values")
@@ -514,6 +524,8 @@ resource "azuread_service_principal_delegated_permission_grant" "this" {
   service_principal_object_id          = try(element(azuread_service_principal.this.*.id, lookup(var.service_principal_delegated_permission_grant[count.index], "service_principal_id")))
   user_object_id                       = try(element(azuread_user.this.*.object_id, lookup(var.service_principal_delegated_permission_grant[count.index], "user_id")))
 }
+
+## DIRECTORY ROLE
 
 resource "azuread_custom_directory_role" "this" {
   count        = length(var.custom_directory_role)
@@ -563,6 +575,8 @@ resource "azuread_directory_role_member" "this" {
   role_object_id   = try(element(azuread_directory_role.this.*.object_id, lookup(var.directory_role_member[count.index], "role_object_id")))
 }
 
+## GROUPS
+
 resource "azuread_group" "this" {
   count                      = length(var.group)
   display_name               = lookup(var.group[count.index], "display_name")
@@ -605,55 +619,405 @@ resource "azuread_group_member" "this" {
   member_object_id = try(element(azuread_user.this.*.id, lookup(var.group_member[count.index], "member_object_id")))
 }
 
+## IDENTITY GOVERNANCE
+
 resource "azuread_access_package" "this" {
-  catalog_id   = ""
-  description  = ""
-  display_name = ""
+  count        = length(var.access_package_catalog) == 0 ? 0 : length(var.access_package)
+  catalog_id   = try(element(azuread_access_package_catalog.this.*.id, lookup(var.access_package[count.index], "catalog_id")))
+  description  = lookup(var.access_package_catalog[count.index], "description")
+  display_name = lookup(var.access_package_catalog[count.index], "display_name")
+  hidden       = lookup(var.access_package_catalog[count.index], "hidden")
 }
 
 resource "azuread_access_package_assignment_policy" "this" {
-  access_package_id = ""
-  description       = ""
-  display_name      = ""
+  count             = length(var.access_package) == 0 ? 0 : length(var.access_package_assignment_policy)
+  access_package_id = try(element(azuread_access_package.this.*.id, lookup(var.access_package_assignment_policy[count.index], "access_package_id")))
+  description       = lookup(var.access_package_assignment_policy[count.index], "description")
+  display_name      = lookup(var.access_package_assignment_policy[count.index], "display_name")
+  duration_in_days  = lookup(var.access_package_assignment_policy[count.index], "duration_in_days")
+  expiration_date   = lookup(var.access_package_assignment_policy[count.index], "expiration_date")
+  extension_enabled = lookup(var.access_package_assignment_policy[count.index], "extension_enabled")
+
+  dynamic "approval_settings" {
+    for_each = try(lookup(var.access_package_assignment_policy[count.index], "approval_settings") == null ? [] : ["approval_settings"])
+    iterator = approval
+    content {
+      approval_required                = lookup(approval.value, "approval_required")
+      approval_required_for_extension  = lookup(approval.value, "approval_required_for_extension")
+      requestor_justification_required = lookup(approval.value, "requestor_justification_required")
+
+      dynamic "approval_stage" {
+        for_each = try(lookup(approval.value, "approval_stage") == null ? [] : ["approval_stage"])
+        iterator = stage
+        content {
+          approval_timeout_in_days            = lookup(stage.value, "approval_timeout_in_days")
+          alternative_approval_enabled        = lookup(stage.value, "alternative_approval_enabled")
+          approver_justification_required     = lookup(stage.value, "approver_justification_required")
+          enable_alternative_approval_in_days = lookup(stage.value, "enable_alternative_approval_in_days")
+
+          dynamic "alternative_approver" {
+            for_each = try(lookup(stage.value, "alternative_approver") == null ? [] : ["alternative_approver"])
+            iterator = alt
+            content {
+              subject_type = lookup(alt.value, "subject_type")
+              backup       = lookup(alt.value, "backup")
+              object_id    = element(azuread_group.this.*.object_id, lookup(alt.value, "object_id"))
+            }
+          }
+
+          dynamic "primary_approver" {
+            for_each = try(lookup(stage.value, "primary_approver") == null ? [] : ["primary_approver"])
+            iterator = pri
+            content {
+              subject_type = lookup(pri.value, "subject_type")
+              backup       = lookup(pri.value, "backup")
+              object_id    = element(azuread_group.this.*.object_id, lookup(pri.value, "object_id"))
+            }
+          }
+        }
+      }
+    }
+  }
+
+  dynamic "assignment_review_settings" {
+    for_each = try(lookup(var.access_package_assignment_policy[count.index], "assignment_review_settings") == null ? [] : ["assignment_review_settings"])
+    iterator = review
+    content {
+      access_recommendation_enabled   = lookup(review.value, "access_recommendation_enabled")
+      access_review_timeout_behavior  = lookup(review.value, "access_review_timeout_behavior")
+      approver_justification_required = lookup(review.value, "approver_justification_required")
+      duration_in_days                = lookup(review.value, "duration_in_days")
+      enabled                         = lookup(review.value, "enabled")
+      review_frequency                = lookup(review.value, "review_frequency")
+      review_type                     = lookup(review.value, "review_type")
+      starting_on                     = lookup(review.value, "starting_on")
+
+      dynamic "reviewer" {
+        for_each = try(lookup(review.value, "reviewer") == null ? [] : ["reviewer"])
+        iterator = rev
+        content {
+          subject_type = lookup(rev.value, "subject_type")
+          backup       = lookup(rev.value, "backup")
+          object_id    = try(element(azuread_group.this.*.object_id, lookup(rev.value, "object_id")))
+        }
+      }
+    }
+  }
+
+  dynamic "question" {
+    for_each = try(lookup(var.access_package_assignment_policy[count.index], "question") == null ? [] : ["question"])
+    content {
+      required = lookup(question.value, "required")
+      sequence = lookup(question.value, "sequence")
+
+      dynamic "choice" {
+        for_each = try(lookup(question.value, "choice") == null ? [] : ["choice"])
+        content {
+          actual_value = lookup(choice.value, "actual_value")
+
+          dynamic "display_value" {
+            for_each = try(lookup(choice.value, "display_value") == null ? [] : ["display_value"])
+            iterator = val
+            content {
+              default_text = lookup(val.value, "default_text")
+
+              dynamic "localized_text" {
+                for_each = try(lookup(val.value, "localized_text") == null ? [] : ["localized_text"])
+                iterator = loc
+                content {
+                  content       = lookup(loc.value, "content")
+                  language_code = lookup(loc.value, "language_code")
+                }
+              }
+            }
+          }
+        }
+      }
+
+      dynamic "text" {
+        for_each = try(lookup(question.value, "text") == null ? [] : ["text"])
+        content {
+          default_text = lookup(text.value, "default_text")
+
+          dynamic "localized_text" {
+            for_each = try(lookup(text.value, "localized_text") == null ? [] : ["localized_text"])
+            iterator = loc
+            content {
+              content       = lookup(loc.value, "content")
+              language_code = lookup(loc.value, "language_code")
+            }
+          }
+        }
+      }
+    }
+  }
+
+  dynamic "requestor_settings" {
+    for_each = try(lookup(var.access_package_assignment_policy[count.index], "requestor_settings") == null ? [] : ["requestor_settings"])
+    iterator = request
+    content {
+      requests_accepted = lookup(request.value, "requests_accepted")
+      scope_type        = lookup(request.value, "scope_type")
+
+      dynamic "requestor" {
+        for_each = try(lookup(request.value, "requestor") == null ? [] : ["requestor"])
+        content {
+          subject_type = lookup(requestor.value, "subject_type")
+          object_id    = try(element(azuread_group.this.*.object_id, lookup(requestor.value, "object_id")))
+        }
+      }
+    }
+  }
 }
 
 resource "azuread_access_package_catalog" "this" {
-  description  = ""
-  display_name = ""
+  count              = length(var.access_package_catalog)
+  description        = lookup(var.access_package_catalog[count.index], "description")
+  display_name       = lookup(var.access_package_catalog[count.index], "display_name")
+  externally_visible = lookup(var.access_package_catalog[count.index], "externally_visible")
+  published          = lookup(var.access_package_catalog[count.index], "published")
 }
 
 resource "azuread_access_package_catalog_role_assignment" "this" {
-  catalog_id          = ""
-  principal_object_id = ""
-  role_id             = ""
+  count               = (length(var.access_package_catalog) && length(var.user)) == 0 ? 0 : length(var.access_package_catalog_role_assignment)
+  catalog_id          = try(element(azuread_access_package_catalog.this.*.id, lookup(var.access_package_catalog_role_assignment[count.index], "catalog_id")))
+  principal_object_id = try(element(azuread_user.this.*.object_id, lookup(var.access_package_catalog_role_assignment[count.index], "principal_object_id")))
+  role_id             = data.azuread_access_package_catalog_role.this.object_id
 }
 
 resource "azuread_access_package_resource_catalog_association" "this" {
-  catalog_id             = ""
-  resource_origin_id     = ""
-  resource_origin_system = ""
+  count                  = (length(var.access_package_catalog) && length(var.group)) == 0 ? 0 : length(var.access_package_resource_catalog_association)
+  catalog_id             = try(element(azuread_access_package_catalog.this.*.id, lookup(var.access_package_resource_catalog_association[count.index], "catalog_id")))
+  resource_origin_id     = try(element(azuread_group.this.*.object_id, lookup(var.access_package_resource_catalog_association[count.index], "resource_origin_id")))
+  resource_origin_system = lookup(var.access_package_resource_catalog_association[count.index], "resource_origin_system")
 }
 
 resource "azuread_access_package_resource_package_association" "this" {
-  access_package_id               = ""
-  catalog_resource_association_id = ""
+  count                           = (length(var.access_package) && length(var.access_package_resource_catalog_association)) == 0 ? 0 : length(var.access_package_resource_package_association)
+  access_package_id               = try(element(azuread_access_package.this.*.id, lookup(var.access_package_resource_package_association[count.index], "access_package_id")))
+  catalog_resource_association_id = try(element(azuread_access_package_resource_catalog_association.this.*.id, lookup(var.access_package_resource_package_association[count.index], "catalog_resource_association_id")))
+  access_type                     = lookup(var.access_package_resource_package_association[count.index], "access_type", "Member")
 }
 
 resource "azuread_privileged_access_group_assignment_schedule" "this" {
-  assignment_type = ""
-  group_id        = ""
-  principal_id    = ""
+  count                = (length(var.group) && length(var.user)) == 0 ? 0 : length(var.privileged_access_group_assignment_schedule)
+  assignment_type      = lookup(var.privileged_access_group_assignment_schedule[count.index], "assignment_type")
+  group_id             = try(element(azuread_group.this.*.id, lookup(var.privileged_access_group_assignment_schedule[count.index], "group_id")))
+  principal_id         = try(element(azuread_user.this.*.id, lookup(var.privileged_access_group_assignment_schedule[count.index], "user_id")))
+  justification        = lookup(var.privileged_access_group_assignment_schedule[count.index], "justification")
+  ticket_number        = lookup(var.privileged_access_group_assignment_schedule[count.index], "ticket_number")
+  ticket_system        = lookup(var.privileged_access_group_assignment_schedule[count.index], "ticket_system")
+  start_date           = lookup(var.privileged_access_group_assignment_schedule[count.index], "start_date")
+  expiration_date      = lookup(var.privileged_access_group_assignment_schedule[count.index], "expiration_date")
+  duration             = lookup(var.privileged_access_group_assignment_schedule[count.index], "duration")
+  permanent_assignment = lookup(var.privileged_access_group_assignment_schedule[count.index], "permanent_assignment")
 }
 
 resource "azuread_privileged_access_group_eligibility_schedule" "this" {
-  assignment_type = ""
-  group_id        = ""
-  principal_id    = ""
+  count                = (length(var.group) && length(var.user)) == 0 ? 0 : length(var.privileged_access_group_eligibility_schedule)
+  assignment_type      = lookup(var.privileged_access_group_eligibility_schedule[count.index], "assignment_type")
+  group_id             = try(element(azuread_group.this.*.id, lookup(var.privileged_access_group_eligibility_schedule[count.index], "group_id")))
+  principal_id         = try(element(azuread_user.this.*.id, lookup(var.privileged_access_group_eligibility_schedule[count.index], "user_id")))
+  justification        = lookup(var.privileged_access_group_eligibility_schedule[count.index], "justification")
+  ticket_number        = lookup(var.privileged_access_group_eligibility_schedule[count.index], "ticket_number")
+  ticket_system        = lookup(var.privileged_access_group_eligibility_schedule[count.index], "ticket_system")
+  start_date           = lookup(var.privileged_access_group_eligibility_schedule[count.index], "start_date")
+  expiration_date      = lookup(var.privileged_access_group_eligibility_schedule[count.index], "expiration_date")
+  duration             = lookup(var.privileged_access_group_eligibility_schedule[count.index], "duration")
+  permanent_assignment = lookup(var.privileged_access_group_eligibility_schedule[count.index], "permanent_assignment")
 }
 
 resource "azuread_invitation" "this" {
-  redirect_url       = ""
-  user_email_address = ""
+  count              = length(var.invitation)
+  redirect_url       = lookup(var.invitation[count.index], "redirect_url")
+  user_email_address = lookup(var.invitation[count.index], "user_email_address")
+  user_display_name  = lookup(var.invitation[count.index], "user_display_name")
+  user_type          = lookup(var.invitation[count.index], "user_type")
+
+  dynamic "message" {
+    for_each = try(lookup(var.invitation[count.index], "message") == null ? [] : ["message"])
+    content {
+      additional_recipients = lookup(message.value, "additional_recipients")
+      body                  = lookup(message.value, "language") != null ? null : lookup(message.value, "body")
+      language              = lookup(message.value, "body") != null ? null : lookup(message.value, "language")
+    }
+  }
+}
+
+resource "azuread_authentication_strength_policy" "this" {
+  count                = length(var.authentication_strength_policy)
+  allowed_combinations = lookup(var.authentication_strength_policy[count.index], "allowed_combinations")
+  display_name         = lookup(var.authentication_strength_policy[count.index], "display_name")
+  description          = lookup(var.authentication_strength_policy[count.index], "description")
+}
+
+resource "azuread_claims_mapping_policy" "this" {
+  count        = length(var.claims_mapping_policy)
+  definition   = jsonencode(lookup(var.claims_mapping_policy[count.index], "definition"))
+  display_name = lookup(var.claims_mapping_policy[count.index], "display_name")
+}
+
+resource "azuread_group_role_management_policy" "this" {
+  count    = length(var.group) == 0 ? 0 : length(var.group_role_management_policy)
+  group_id = try(element(azuread_group.this.*.id, lookup(var.group_role_management_policy[count.index], "group_id")))
+  role_id  = lookup(var.group_role_management_policy[count.index], "role_id")
+
+  dynamic "activation_rules" {
+    for_each = try(lookup(var.group_role_management_policy[count.index], "activation_rules") == null ? [] : ["activation_rules"])
+    iterator = act
+    content {
+      maximum_duration                                   = lookup(act.value, "maximum_duration")
+      require_approval                                   = lookup(act.value, "require_approval")
+      require_justification                              = lookup(act.value, "require_justification")
+      require_multifactor_authentication                 = lookup(act.value, "require_multifactor_authentication")
+      require_ticket_info                                = lookup(act.value, "require_ticket_info")
+      required_conditional_access_authentication_context = lookup(act.value, "required_conditional_access_authentication_context")
+
+      dynamic "approval_stage" {
+        for_each = try(lookup(act.value, "approval_stage") == null ? [] : ["approval_stage"])
+        iterator = app
+        content {
+          dynamic "primary_approver" {
+            for_each = try(lookup(app.value, "primary_approver") == null ? [] : ["primary_approver"])
+            iterator = pri
+            content {
+              object_id = try(element(azuread_group.this.*.object_id, lookup(pri.value, "object_id")))
+              type      = lookup(pri.value, "type")
+            }
+          }
+        }
+      }
+    }
+  }
+
+  dynamic "active_assignment_rules" {
+    for_each = try(lookup(var.group_role_management_policy[count.index], "active_assignment_rules") == null ? [] : ["active_assignment_rules"])
+    iterator = assi
+    content {
+      expiration_required                = lookup(assi.value, "expiration_required")
+      expire_after                       = lookup(assi.value, "expire_after")
+      require_justification              = lookup(assi.value, "require_justification")
+      require_multifactor_authentication = lookup(assi.value, "require_multifactor_authentication")
+      require_ticket_info                = lookup(assi.value, "require_ticket_info")
+    }
+  }
+
+  dynamic "eligible_assignment_rules" {
+    for_each = try(lookup(var.group_role_management_policy[count.index], "eligible_assignment_rules") == null ? [] : ["eligible_assignment_rules"])
+    iterator = eli
+    content {
+      expiration_required = lookup(eli.value, "expiration_required")
+      expire_after        = lookup(eli.value, "expire_after")
+    }
+  }
+
+  dynamic "notification_rules" {
+    for_each = try(lookup(var.group_role_management_policy[count.index], "notification_rules") == null ? [] : ["notification_rules"])
+    iterator = not
+    content {
+      dynamic "active_assignments" {
+        for_each = try(lookup(not.value, "active_assignments") == null ? [] : ["active_assignments"])
+        iterator = act
+        content {
+          dynamic "admin_notifications" {
+            for_each = try(lookup(act.value, "admin_notifications") == null ? [] : ["admin_notifications"])
+            iterator = admin
+            content {
+              default_recipients    = lookup(admin.value, "default_recipients")
+              notification_level    = lookup(admin.value, "notification_level")
+              additional_recipients = lookup(admin.value, "additional_recipients")
+            }
+          }
+          dynamic "approver_notifications" {
+            for_each = try(lookup(act.value, "approver_notifications") == null ? [] : ["approver_notifications"])
+            iterator = approver
+            content {
+              default_recipients    = lookup(approver.value, "default_recipients")
+              notification_level    = lookup(approver.value, "notification_level")
+              additional_recipients = lookup(approver.value, "additional_recipients")
+            }
+          }
+          dynamic "assignee_notifications" {
+            for_each = try(lookup(act.value, "assignee_notifications") == null ? [] : ["assignee_notifications"])
+            iterator = assignee
+            content {
+              default_recipients    = lookup(assignee.value, "default_recipients")
+              notification_level    = lookup(assignee.value, "notification_level")
+              additional_recipients = lookup(assignee.value, "additional_recipients")
+            }
+          }
+        }
+      }
+
+      dynamic "eligible_activations" {
+        for_each = try(lookup(not.value, "eligible_activations") == null ? [] : ["eligible_activations"])
+        iterator = eli
+        content {
+          dynamic "admin_notifications" {
+            for_each =  try(lookup(eli.value, "assignee_notifications") == null ? [] : ["assignee_notifications"])
+            iterator = admin
+            content {
+              default_recipients    = lookup(admin.value, "default_recipients")
+              notification_level    = lookup(admin.value, "notification_level")
+              additional_recipients = lookup(admin.value, "additional_recipients")
+            }
+          }
+          dynamic "approver_notifications" {
+            for_each =  try(lookup(eli.value, "assignee_notifications") == null ? [] : ["assignee_notifications"])
+            iterator = approver
+            content {
+              default_recipients    = lookup(approver.value, "default_recipients")
+              notification_level    = lookup(approver.value, "notification_level")
+              additional_recipients = lookup(approver.value, "additional_recipients")
+            }
+          }
+          dynamic "assignee_notifications" {
+            for_each =  try(lookup(eli.value, "assignee_notifications") == null ? [] : ["assignee_notifications"])
+            iterator = assignee
+            content {
+              default_recipients    = lookup(assignee.value, "default_recipients")
+              notification_level    = lookup(assignee.value, "notification_level")
+              additional_recipients = lookup(assignee.value, "additional_recipients")
+            }
+          }
+        }
+      }
+
+      dynamic "eligible_assignments" {
+        for_each = try(lookup(not.value, "eligible_assignments") == null ? [] : ["eligible_assignments"])
+        iterator = ess
+        content {
+          dynamic "admin_notifications" {
+            for_each = try(lookup(ess.value, "assignee_notifications") == null ? [] : ["assignee_notifications"])
+            iterator = admin
+            content {
+              default_recipients    = lookup(admin.value, "default_recipients")
+              notification_level    = lookup(admin.value, "notification_level")
+              additional_recipients = lookup(admin.value, "additional_recipients")
+            }
+          }
+          dynamic "approver_notifications" {
+            for_each = try(lookup(ess.value, "assignee_notifications") == null ? [] : ["assignee_notifications"])
+            iterator = approver
+            content {
+              default_recipients    = lookup(approver.value, "default_recipients")
+              notification_level    = lookup(approver.value, "notification_level")
+              additional_recipients = lookup(approver.value, "additional_recipients")
+            }
+          }
+          dynamic "assignee_notifications" {
+            for_each = try(lookup(ess.value, "assignee_notifications") == null ? [] : ["assignee_notifications"])
+            iterator = assignee
+            content {
+              default_recipients    = lookup(assignee.value, "default_recipients")
+              notification_level    = lookup(assignee.value, "notification_level")
+              additional_recipients = lookup(assignee.value, "additional_recipients")
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 resource "azuread_service_principal" "this" {
@@ -692,44 +1056,122 @@ resource "azuread_service_principal" "this" {
 }
 
 resource "azuread_service_principal_certificate" "this" {
-  service_principal_id = ""
-  value                = ""
+  count                = length(var.service_principal) == 0 ? 0 : length(var.service_principal_certificate)
+  service_principal_id = try(element(azuread_service_principal.this.*.id, ))
+  value                = lookup(var.service_principal_certificate[count.index], "file_extension") == "pem" ? file(join("/", [path.cwd, "certificates", join(".", [lookup(var.service_principal_certificate[count.index], "value"), lookup(var.service_principal_certificate[count.index], "file_extension")])])) : base64encode(file(join("/", [path.cwd, "certificates", join(".", [lookup(var.service_principal_certificate[count.index], "value"), lookup(var.service_principal_certificate[count.index], "file_extension")])])))
+  encoding             = lookup(var.service_principal_certificate[count.index], "encoding")
+  end_date             = lookup(var.service_principal_certificate[count.index], "end_date")
+  end_date_relative    = lookup(var.service_principal_certificate[count.index], "end_date_relative")
+  key_id               = lookup(var.service_principal_certificate[count.index], "key_id")
+  start_date           = lookup(var.service_principal_certificate[count.index], "start_date")
+  type                 = lookup(var.service_principal_certificate[count.index], "type")
 }
 
 resource "azuread_service_principal_claims_mapping_policy_assignment" "this" {
-  claims_mapping_policy_id = ""
-  service_principal_id     = ""
+  count                    = (length(var.service_principal) && length(var.claims_mapping_policy)) == 0 ? 0 : length(var.service_principal_claims_mapping_policy_assignment)
+  claims_mapping_policy_id = try(element(azuread_claims_mapping_policy.this.*.id, lookup(var.service_principal_claims_mapping_policy_assignment[count.index], "claims_mapping_policy_id")))
+  service_principal_id     = try(element(azuread_service_principal.this.*.id, lookup(var.service_principal_claims_mapping_policy_assignment[count.index], "service_principal_id")))
 }
 
 resource "azuread_service_principal_password" "this" {
-  service_principal_id = ""
+  count                = length(var.service_principal) == 0 ? 0 : length(var.service_principal_password)
+  service_principal_id = try(element(azuread_service_principal.this.*.id, lookup(var.service_principal_password[count.index], "service_principal_id")))
+  end_date             = lookup(var.service_principal_password[count.index], "end_date")
+  end_date_relative    = lookup(var.service_principal_password[count.index], "end_date_relative")
+  rotate_when_changed  = lookup(var.service_principal_password[count.index], "rotate_when_changed")
+  start_date           = lookup(var.service_principal_password[count.index], "start_date")
 }
 
 resource "azuread_service_principal_token_signing_certificate" "this" {
-  service_principal_id = ""
+  count                = length(var.service_principal) == 0 ? 0 : length(var.service_principal_token_signing_certificate)
+  service_principal_id = try(element(azuread_service_principal.this.*.id, lookup(var.service_principal_token_signing_certificate[count.index], "service_principal_id")))
+  display_name         = lookup(var.service_principal_token_signing_certificate[count.index], "display_name")
+  end_date             = lookup(var.service_principal_token_signing_certificate[count.index], "end_date")
 }
 
 resource "azuread_synchronization_job" "this" {
-  service_principal_id = ""
-  template_id          = ""
+  count                = length(var.service_principal) == 0 ? 0 : length(var.synchronization_job)
+  service_principal_id = try(element(azuread_service_principal.this.*.id, lookup(var.synchronization_job[count.index], "service_principal")))
+  template_id          = lookup(var.synchronization_job[count.index], "template_id")
+  enabled              = lookup(var.synchronization_job[count.index], "enabled")
 }
 
 resource "azuread_synchronization_job_provision_on_demand" "this" {
-  service_principal_id   = ""
-  synchronization_job_id = ""
+  count                  = (length(var.service_principal) && length(var.synchronization_job)) == 0 ? 0 : length(var.synchronization_job_provision_on_demand)
+  service_principal_id   = try(element(azuread_service_principal.this.*.id, lookup(var.synchronization_job_provision_on_demand[count.index], "service_principal_id")))
+  synchronization_job_id = try(element(azuread_synchronization_job.this.*.id, lookup(var.synchronization_job_provision_on_demand[count.index], "synchronization_job_id")))
+  triggers               = lookup(var.synchronization_job_provision_on_demand[count.index], "trigger")
+
+  dynamic "parameter" {
+    for_each = lookup(var.synchronization_job_provision_on_demand[count.index], "parameter")
+    content {
+      rule_id = lookup(parameter.value, "role_id")
+
+      dynamic "subject" {
+        for_each = lookup(parameter.value, "subject")
+        content {
+          object_id        = element(azuread_group.this.*.object_id, lookup(subject.value, "group_id"))
+          object_type_name = lookup(subject.value, "object_type_name")
+        }
+      }
+    }
+  }
 }
 
 resource "azuread_synchronization_secret" "this" {
-  service_principal_id = ""
+  count                = length(var.service_principal) == 0 ? 0 : length(var.synchronization_secret)
+  service_principal_id = try(element(azuread_service_principal.this.*.id, lookup(var.synchronization_secret, )))
+
+  dynamic "credential" {
+    for_each = lookup(var.synchronization_secret[count.index], "credentials")
+    content {
+      key   = lookup(credential.value, "key")
+      value = lookup(credential.value, "value")
+    }
+  }
 }
 
 resource "azuread_user_flow_attribute" "this" {
-  data_type    = ""
-  description  = ""
-  display_name = ""
+  count        = length(var.user_flow_attribute)
+  data_type    = lookup(var.user_flow_attribute[count.index], "data_type")
+  description  = lookup(var.user_flow_attribute[count.index], "description")
+  display_name = lookup(var.user_flow_attribute[count.index], "display_name")
 }
 
 resource "azuread_user" "this" {
-  display_name        = ""
-  user_principal_name = ""
+  count                       = length(var.user)
+  display_name                = lookup(var.user[count.index], "display_name")
+  user_principal_name         = lookup(var.user[count.index], "user_principal_name")
+  account_enabled             = lookup(var.user[count.index], "account_enabled")
+  age_group                   = lookup(var.user[count.index], "age_group")
+  business_phones             = lookup(var.user[count.index], "business_phones")
+  city                        = lookup(var.user[count.index], "city")
+  company_name                = lookup(var.user[count.index], "company_name")
+  consent_provided_for_minor  = lookup(var.user[count.index], "consent_provided_for_minor")
+  cost_center                 = lookup(var.user[count.index], "cost_center")
+  country                     = lookup(var.user[count.index], "country")
+  department                  = lookup(var.user[count.index], "department")
+  disable_password_expiration = lookup(var.user[count.index], "disable_password_expiration")
+  disable_strong_password     = lookup(var.user[count.index], "disable_strong_password")
+  division                    = lookup(var.user[count.index], "division")
+  employee_id                 = lookup(var.user[count.index], "employee_id")
+  employee_type               = lookup(var.user[count.index], "employee_type")
+  fax_number                  = lookup(var.user[count.index], "fax_number")
+  force_password_change       = lookup(var.user[count.index], "force_password_change")
+  given_name                  = lookup(var.user[count.index], "given_name")
+  job_title                   = lookup(var.user[count.index], "job_title")
+  mail                        = lookup(var.user[count.index], "mail")
+  mail_nickname               = lookup(var.user[count.index], "mail_nickname")
+  mobile_phone                = lookup(var.user[count.index], "mobile_phone")
+  office_location             = lookup(var.user[count.index], "office_location")
+  onpremises_immutable_id     = lookup(var.user[count.index], "onpremises_immutable_id")
+  other_mails                 = lookup(var.user[count.index], "other_mails")
+  password                    = lookup(var.user[count.index], "password")
+  postal_code                 = lookup(var.user[count.index], "postal_code")
+  preferred_language          = lookup(var.user[count.index], "preferred_language")
+  show_in_address_list        = lookup(var.user[count.index], "show_in_address_list")
+  state                       = lookup(var.user[count.index], "state")
+  street_address              = lookup(var.user[count.index], "street_address")
+  surname                     = lookup(var.user[count.index], "surname")
+  usage_location              = lookup(var.user[count.index], "usage_location")
 }

@@ -190,10 +190,13 @@ variable "application_app_role" {
 variable "application_certificate" {
   type = list(object({
     id             = number
-    certificate_id = any
+    certificate_id = optional(any)
+    value          = optional(string)
     application_id = any
     type           = string
     encoding       = string
+    end_date       = optional(string)
+    start_date     = optional(string)
   }))
   default = []
 
@@ -696,56 +699,302 @@ variable "group_member" {
 
 variable "access_package" {
   type = list(object({
-    id = number
+    id           = number
+    catalog_id   = any
+    description  = string
+    display_name = string
+    hidden       = optional(bool)
   }))
   default = []
 }
 
 variable "access_package_assignment_policy" {
   type = list(object({
-    id = number
+    id                = number
+    access_package_id = any
+    description       = string
+    display_name      = string
+    duration_in_days  = optional(number)
+    expiration_date   = optional(string)
+    extension_enabled = optional(bool)
+    approval_settings = optional(list(object({
+      approval_required                = optional(bool)
+      approval_required_for_extension  = optional(bool)
+      requestor_justification_required = optional(bool)
+      approval_stage = optional(list(object({
+        approval_timeout_in_days            = number
+        alternative_approval_enabled        = optional(bool)
+        approver_justification_required     = optional(bool)
+        enable_alternative_approval_in_days = optional(number)
+        alternative_approver = optional(list(object({
+          subject_type = string
+          backup       = optional(bool)
+          object_id    = optional(any)
+        })))
+        primary_approver = optional(list(object({
+          subject_type = string
+          backup       = optional(bool)
+          object_id    = optional(any)
+        })))
+      })))
+    })))
+    assignment_review_settings = optional(list(object({
+      access_recommendation_enabled   = optional(bool)
+      access_review_timeout_behavior  = optional(string)
+      approver_justification_required = optional(bool)
+      duration_in_days                = optional(number)
+      enabled                         = optional(bool)
+      review_frequency                = optional(string)
+      review_type                     = optional(string)
+      starting_on                     = optional(string)
+      reviewer = optional(list(object({
+        subject_type = string
+        backup       = optional(bool)
+        object_id    = optional(any)
+      })))
+    })))
+    question = optional(list(object({
+      required = optional(bool)
+      sequence = optional(number)
+      choice = optional(list(object({
+        actual_value = string
+        display_value = list(object({
+          content       = string
+          language_code = string
+        }))
+      })))
+      text = list(object({
+        default_text = string
+        localized_text = list(object({
+          content       = string
+          language_code = string
+        }))
+      }))
+    })))
+    requestor_settings = optional(list(object({
+      requests_accepted = optional(bool)
+      scope_type        = optional(string)
+      requestor = optional(list(object({
+        subject_type = string
+        object_id    = optional(any)
+      })))
+    })))
   }))
   default = []
 }
 
 variable "access_package_catalog" {
   type = list(object({
-    id = number
+    id                 = number
+    description        = string
+    display_name       = string
+    externally_visible = optional(bool)
+    published          = optional(bool)
   }))
   default = []
 }
 
 variable "access_package_catalog_role_assignment" {
   type = list(object({
-    id = number
+    id                  = number
+    catalog_id          = any
+    principal_object_id = any
+    role_id             = optional(any)
   }))
   default = []
 }
 
 variable "access_package_resource_catalog_association" {
   type = list(object({
-    id = number
+    id                     = number
+    catalog_id             = any
+    resource_origin_id     = any
+    resource_origin_system = string
   }))
   default = []
 }
 
 variable "access_package_resource_package_association" {
   type = list(object({
-    id = number
+    id                              = number
+    access_package_id               = any
+    catalog_resource_association_id = any
+    access_type                     = optional(string)
   }))
   default = []
+
+  validation {
+    condition     = length([for a in var.access_package_resource_package_association : true if contains(["Member", "Owner"], a.access_type)]) == length(var.access_package_resource_package_association)
+    error_message = "Valid values are Member, or Owner. The default is Member."
+  }
 }
 
 variable "privileged_access_group_assignment_schedule" {
   type = list(object({
-    id = number
+    id                   = number
+    assignment_type      = string
+    group_id             = any
+    user_id              = any
+    justification        = optional(string)
+    ticket_number        = optional(string)
+    ticket_system        = optional(string)
+    start_date           = optional(string)
+    expiration_date      = optional(string)
+    duration             = optional(string)
+    permanent_assignment = optional(bool)
   }))
   default = []
+  validation {
+    condition     = length([for a in var.privileged_access_group_assignment_schedule : true if contains(["Member", "Owner"], a.assignment_type)]) == length(var.privileged_access_group_assignment_schedule)
+    error_message = "Valid values are Member, or Owner. The default is Member."
+  }
+}
+
+variable "privileged_access_group_eligibility_schedule" {
+  type = list(object({
+    id                   = number
+    assignment_type      = string
+    group_id             = any
+    user_id              = any
+    justification        = optional(string)
+    ticket_number        = optional(string)
+    ticket_system        = optional(string)
+    start_date           = optional(string)
+    expiration_date      = optional(string)
+    duration             = optional(string)
+    permanent_assignment = optional(bool)
+  }))
+  default = []
+
+  validation {
+    condition     = length([for a in var.privileged_access_group_eligibility_schedule : true if contains(["Member", "Owner"], a.assignment_type)]) == length(var.privileged_access_group_eligibility_schedule)
+    error_message = "Valid values are Member, or Owner. The default is Member."
+  }
 }
 
 variable "invitation" {
   type = list(object({
-    id = number
+    id                 = number
+    redirect_url       = string
+    user_email_address = string
+    user_display_name  = optional(string)
+    user_type          = optional(string, "Guest")
+    message = optional(list(object({
+      additional_recipients = optional(string)
+      body                  = optional(string)
+      language              = optional(string, "en-US")
+    })))
+  }))
+  default = []
+
+  validation {
+    condition     = length([for a in var.invitation : true if contains(["Member", "Guest"], a.user_type)]) == length(var.invitation)
+    error_message = "Valid values are Member, or Guest. The default is Guest."
+  }
+}
+
+variable "authentication_strength_policy" {
+  type = list(object({
+    id                   = number
+    allowed_combinations = list(string)
+    display_name         = string
+    description          = optional(string)
+  }))
+  default = []
+}
+
+variable "claims_mapping_policy" {
+  type = list(object({
+    id           = number
+    definition   = list(string)
+    display_name = string
+  }))
+  default = []
+}
+
+variable "group_role_management_policy" {
+  type = list(object({
+    id       = number
+    group_id = any
+    role_id  = string
+    activation_rules = optional(list(object({
+      maximum_duration                                   = optional(string)
+      require_approval                                   = optional(bool)
+      require_justification                              = optional(bool)
+      require_multifactor_authentication                 = optional(bool)
+      require_ticket_info                                = optional(bool)
+      required_conditional_access_authentication_context = optional(string)
+      approval_stage = optional(list(object({
+        primary_approver = optional(list(object({
+          object_id = any
+          type      = optional(string)
+        })))
+      })))
+    })))
+    active_assignment_rules = optional(list(object({
+      expiration_required                = optional(bool)
+      expire_after                       = optional(string)
+      require_justification              = optional(bool)
+      require_multifactor_authentication = optional(bool)
+      require_ticket_info                = optional(bool)
+    })))
+    eligible_assignment_rules = optional(list(object({
+      expiration_required = optional(bool)
+      expire_after        = optional(string)
+    })))
+    notification_rules = optional(list(object({
+      active_assignments = optional(list(object({
+        admin_notifications = optional(list(object({
+          default_recipients    = bool
+          notification_level    = string
+          additional_recipients = optional(list(string))
+        })))
+        approver_notifications = optional(list(object({
+          default_recipients    = bool
+          notification_level    = string
+          additional_recipients = optional(list(string))
+        })))
+        assignee_notifications = optional(list(object({
+          default_recipients    = bool
+          notification_level    = string
+          additional_recipients = optional(list(string))
+        })))
+      })))
+      eligible_activations = optional(list(object({
+        admin_notifications = optional(list(object({
+          default_recipients    = bool
+          notification_level    = string
+          additional_recipients = optional(list(string))
+        })))
+        approver_notifications = optional(list(object({
+          default_recipients    = bool
+          notification_level    = string
+          additional_recipients = optional(list(string))
+        })))
+        assignee_notifications = optional(list(object({
+          default_recipients    = bool
+          notification_level    = string
+          additional_recipients = optional(list(string))
+        })))
+      })))
+      eligible_assignments = optional(list(object({
+        admin_notifications = optional(list(object({
+          default_recipients    = bool
+          notification_level    = string
+          additional_recipients = optional(list(string))
+        })))
+        approver_notifications = optional(list(object({
+          default_recipients    = bool
+          notification_level    = string
+          additional_recipients = optional(list(string))
+        })))
+        assignee_notifications = optional(list(object({
+          default_recipients    = bool
+          notification_level    = string
+          additional_recipients = optional(list(string))
+        })))
+      })))
+    })))
   }))
   default = []
 }
@@ -780,63 +1029,147 @@ variable "service_principal" {
 
 variable "service_principal_certificate" {
   type = list(object({
-    id = number
+    id                   = number
+    service_principal_id = any
+    value                = string
+    encoding             = optional(string)
+    end_date             = optional(string)
+    end_date_relative    = optional(string)
+    key_id               = optional(string)
+    start_date           = optional(string)
+    type                 = string
+    file_extension       = optional(string)
   }))
   default = []
+
+  validation {
+    condition     = length([for a in var.service_principal_certificate : true if contains(["AsymmetricX509Cert", "Symmetric"], a.type)]) == length(var.service_principal_certificate)
+    error_message = "Must be one of AsymmetricX509Cert or Symmetric."
+  }
 }
 
 variable "service_principal_claims_mapping_policy_assignment" {
   type = list(object({
-    id = number
+    id                       = number
+    claims_mapping_policy_id = any
+    service_principal_id     = any
   }))
   default = []
 }
 
 variable "service_principal_password" {
   type = list(object({
-    id = number
+    id                   = number
+    service_principal_id = any
+    end_date             = optional(string)
+    end_date_relative    = optional(string)
+    rotate_when_changed  = optional(map(string))
+    start_date           = optional(string)
   }))
   default = []
 }
 
 variable "service_principal_token_signing_certificate" {
   type = list(object({
-    id = number
+    id                   = number
+    service_principal_id = any
+    display_name         = optional(string)
+    end_date             = optional(string)
   }))
   default = []
 }
 
 variable "synchronization_job" {
   type = list(object({
-    id = number
+    id                   = number
+    service_principal_id = any
+    template_id          = string
+    enabled              = optional(bool)
   }))
   default = []
 }
 
 variable "synchronization_job_provision_on_demand" {
   type = list(object({
-    id = number
+    id                     = number
+    service_principal_id   = any
+    synchronization_job_id = any
+    triggers               = optional(string)
+    parameter = list(object({
+      rule_id = any
+      subject = list(object({
+        group_id         = any
+        object_type_name = string
+      }))
+    }))
   }))
   default = []
 }
 
 variable "synchronization_secret" {
   type = list(object({
-    id = number
+    id                   = number
+    service_principal_id = any
+    credential = list(object({
+      key   = string
+      value = string
+    }))
   }))
   default = []
 }
 
 variable "user_flow_attribute" {
   type = list(object({
-    id = number
+    id           = number
+    data_type    = string
+    description  = string
+    display_name = string
   }))
   default = []
+
+  validation {
+    condition     = length([for a in var.user_flow_attribute : true if contains(["boolean", "dateTime", "int64", "string", "stringCollection"], a.data_type)]) == length(var.user_flow_attribute)
+    error_message = "Possible values are boolean, dateTime, int64, string or stringCollection."
+  }
 }
 
 variable "user" {
   type = list(object({
-    id = number
+    id                          = number
+    display_name                = string
+    user_principal_name         = string
+    account_enabled             = optional(bool)
+    age_group                   = optional(string)
+    business_phones             = optional(list(string))
+    city                        = optional(string)
+    company_name                = optional(string)
+    consent_provided_for_minor  = optional(string)
+    cost_center                 = optional(string)
+    country                     = optional(string)
+    department                  = optional(string)
+    disable_password_expiration = optional(bool)
+    disable_strong_password     = optional(bool)
+    division                    = optional(string)
+    employee_id                 = optional(string)
+    employee_type               = optional(string)
+    fax_number                  = optional(string)
+    force_password_change       = optional(bool)
+    given_name                  = optional(string)
+    job_title                   = optional(string)
+    mail                        = optional(string)
+    mail_nickname               = optional(string)
+    mobile_phone                = optional(string)
+    office_location             = optional(string)
+    onpremises_immutable_id     = optional(string)
+    other_mails                 = optional(list(string))
+    password                    = optional(string)
+    postal_code                 = optional(string)
+    preferred_language          = optional(string)
+    show_in_address_list        = optional(bool)
+    state                       = optional(string)
+    street_address              = optional(string)
+    surname                     = optional(string)
+    usage_location              = optional(string)
   }))
   default = []
 }

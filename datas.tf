@@ -7,4 +7,4 @@ data "azuread_application_template" "this" {
 
 data "azuread_application_published_app_ids" "this" {}
 
-#azuread_application_published_app_ids
+data "azuread_access_package_catalog_role" "this" {}

@@ -108,6 +108,68 @@ output "application_from_template_display_name" {
 
 ## APPLICATION IDENTIFIER URI
 
+output "application_identifier_uri_id" {
+  value = try(
+    azuread_application_identifier_uri.this.*.id
+  )
+}
+
+## APPLICATION KNOWN CLIENTS
+
+output "application_known_clients_id" {
+  value = try(
+    azuread_application_known_clients.this.*.id
+  )
+}
+
+## APPLICATION OPTIONAL CLAIMS
+
+output "application_optional_claims_id" {
+  value = try(
+    azuread_application_optional_claims.this.*.id
+  )
+}
+
+## APPLICATION OWNER
+
+output "application_owner_id" {
+  value = try(
+    azuread_application_owner.this.*.id
+  )
+}
+
+## APPLICATION PASSWORD
+
+output "application_password_id" {
+  value = try(
+    azuread_application_password.this.*.id
+  )
+}
+
+## APPLICATION PERMISSION SCOPE
+
+output "application_permission_scope_id" {
+  value = try(
+    azuread_application_permission_scope.this.*.id
+  )
+}
+
+## APPLICATION REDIRECT URIS
+
+output "application_redirect_uris_id" {
+  value = try(
+    azuread_application_redirect_uris.this.*.id
+  )
+}
+
+## APPLICATION REGISTRATION
+
+output "application_registration_id" {
+  value = try(
+    azuread_application_registration.this.*.id
+  )
+}
+
 ## SERVICE PRINCIPAL
 
 output "service_principal_id" {

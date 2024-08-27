@@ -30,7 +30,7 @@ module "azuread" {
 ```
 #### variables
 ````terraform
-variable "administrative_univ" {
+variable "administrative_unit" {
   type = any
 }
 

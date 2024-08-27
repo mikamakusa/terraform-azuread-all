@@ -62,12 +62,13 @@ resource "azuread_application" "this" {
       end_date     = lookup(password.value, "end_date")
     }
   }
+
   dynamic "api" {
     for_each = try(lookup(var.application[count.index], "api") == null ? [] : ["api"])
     content {
       known_client_applications      = lookup(api.value, "known_client_applications")
-      mapped_claims_enabled          = lookup(api.value, "mapped_claims_enabled")
-      requested_access_token_version = lookup(api.value, "requested_access_token_version")
+      mapped_claims_enabled          = lookup(api.value, "mapped_claims_enabled", false)
+      requested_access_token_version = lookup(var.application[count.index], "sign_in_audience") == "AzureADandPersonalMicrosoftAccount" || "PersonalMicrosoftAccount " ? 2 : lookup(api.value, "requested_access_token_version", 1)
 
       dynamic "oauth2_permission_scope" {
         for_each = try(lookup(api.value, "oauth2_permission_scope") == null ? [] : ["oauth2_permission_scope"])
@@ -76,7 +77,7 @@ resource "azuread_application" "this" {
           id                         = lookup(oauth2.value, "id")
           admin_consent_description  = lookup(oauth2.value, "admin_consent_description")
           admin_consent_display_name = lookup(oauth2.value, "admin_consent_display_name")
-          enabled                    = lookup(oauth2.value, "enabled")
+          enabled                    = lookup(oauth2.value, "enabled", true)
           type                       = lookup(oauth2.value, "type")
           user_consent_description   = lookup(oauth2.value, "user_consent_description")
           user_consent_display_name  = lookup(oauth2.value, "user_consent_display_name")
@@ -93,7 +94,7 @@ resource "azuread_application" "this" {
       description          = lookup(app_role.value, "description")
       display_name         = lookup(app_role.value, "display_name")
       id                   = lookup(app_role.value, "id")
-      enabled              = lookup(app_role.value, "enabled")
+      enabled              = lookup(app_role.value, "enabled", true)
       value                = lookup(app_role.value, "value")
     }
   }
@@ -102,10 +103,10 @@ resource "azuread_application" "this" {
     for_each = try(lookup(var.application[count.index], "feature_tags") == null ? [] : ["feature_tags"])
     iterator = tags
     content {
-      custom_single_sign_on = lookup(tags.value, "custom_single_sign_on")
-      enterprise            = lookup(tags.value, "enterprise")
-      gallery               = lookup(tags.value, "gallery")
-      hide                  = lookup(tags.value, "hide")
+      custom_single_sign_on = lookup(tags.value, "custom_single_sign_on", false)
+      enterprise            = lookup(tags.value, "enterprise", false)
+      gallery               = lookup(tags.value, "gallery", false)
+      hide                  = lookup(tags.value, "hide", false)
     }
   }
 
@@ -164,7 +165,7 @@ resource "azuread_application" "this" {
         for_each = try(lookup(access.value, "resource_access") == null ? [] : ["resource_access"])
         iterator = resource
         content {
-          id   = lookup(resource.value, "id")
+          id   = lookup(resource.value, "type") == "Role" ? try(element(azuread_service_principal.this.*.app_role_ids["User.Read.All"], lookup(resource.value, "service_principal_id"))) : try(element(azuread_service_principal.this.*.oauth2_permission_scope_ids["User.ReadWrite"], lookup(resource.value, "service_principal_id")))
           type = lookup(resource.value, "type")
         }
       }
@@ -218,12 +219,12 @@ resource "azuread_application_app_role" "this" {
 
 resource "azuread_application_certificate" "this" {
   count          = (length(var.application) && length(var.certificate)) == 0 ? 0 : length(var.application_certificate)
-  value          = length(var.certificate) != null ? try(element(module.keyvault.*.certificate_attribute_data, lookup(var.application_certificate[count.index], "certificate_id"))) : file(join("/", [path.cwd, "certificates", lookup(var.application_certificate[count.index], "value")]))
+  value          = lookup(var.application_certificate[count.index], "encoding") == "hex" ? try(element(module.keyvault.*.certificate_attribute_data, lookup(var.application_certificate[count.index], "key_id"))) : lookup(var.application_certificate[count.index], "encoding") == "base64" ? base64encode(file(join("/", [path.cwd, "certificate", lookup(var.application_certificate[count.index], "value")]))) : file(join("/", [path.cwd, "certificate", lookup(var.application_certificate[count.index], "value")]))
   application_id = try(element(azuread_application.this.*.id, lookup(var.application_certificate[count.index], "application_id")))
   type           = lookup(var.application_certificate[count.index], "type")
   encoding       = lookup(var.application_certificate[count.index], "encoding")
-  end_date       = length(var.certificate) != null ? try(element(module.keyvault.*.certificate_attribute_expires, lookup(var.application_certificate[count.index], "certificate_id"))) : lookup(var.application_certificate[count.index], "end_date")
-  start_date     = length(var.certificate) != null ? try(element(module.keyvault.*.certificate_attribute_not_before, lookup(var.application_certificate[count.index], "certificate_id"))) : lookup(var.application_certificate[count.index], "start_date")
+  end_date       = lookup(var.application_certificate[count.index], "encoding") == "hex" ? try(element(module.keyvault.*.certificate_attribute_expires, lookup(var.application_certificate[count.index], "certificate_id"))) : lookup(var.application_certificate[count.index], "end_date")
+  start_date     = lookup(var.application_certificate[count.index], "encoding") == "hex" ? try(element(module.keyvault.*.certificate_attribute_not_before, lookup(var.application_certificate[count.index], "certificate_id"))) : lookup(var.application_certificate[count.index], "start_date")
 }
 
 resource "azuread_application_fallback_public_client" "this" {
@@ -349,9 +350,9 @@ resource "azuread_application_registration" "this" {
   marketing_url                          = lookup(var.application_registration[count.index], "marketing_url")
   notes                                  = lookup(var.application_registration[count.index], "notes")
   privacy_statement_url                  = lookup(var.application_registration[count.index], "privacy_statement_url")
-  requested_access_token_version         = lookup(var.application_registration[count.index], "requested_access_token_version")
+  requested_access_token_version         = lookup(var.application_registration[count.index], "sign_in_audience") == "AzureADandPersonalMicrosoftAccount " || "PersonalMicrosoftAccount" ? lookup(var.application_registration[count.index], "requested_access_token_version", 2) : lookup(var.application_registration[count.index], "requested_access_token_version")
   service_management_reference           = lookup(var.application_registration[count.index], "service_management_reference")
-  sign_in_audience                       = lookup(var.application_registration[count.index], "sign_in_audience")
+  sign_in_audience                       = lookup(var.application_registration[count.index], "sign_in_audience", "AzureADMyOrg")
   support_url                            = lookup(var.application_registration[count.index], "support_url")
   terms_of_service_url                   = lookup(var.application_registration[count.index], "terms_of_service_url")
 }
@@ -581,7 +582,7 @@ resource "azuread_group" "this" {
   count                      = length(var.group)
   display_name               = lookup(var.group[count.index], "display_name")
   administrative_unit_ids    = lookup(var.group[count.index], "administrative_unit_ids")
-  assignable_to_role         = lookup(var.group[count.index], "assignable_to_role")
+  assignable_to_role         = lookup(var.group[count.index], "assignable_to_role", false)
   auto_subscribe_new_members = lookup(var.group[count.index], "auto_subscribe_new_members")
   behaviors                  = lookup(var.group[count.index], "behaviors")
   description                = lookup(var.group[count.index], "description")
@@ -596,8 +597,8 @@ resource "azuread_group" "this" {
     data.azuread_client_config.this.object_id,
     try(element(azuread_user.this.*.object_id, lookup(var.group[count.index], "user_id")))
   ]
-  prevent_duplicate_names = lookup(var.group[count.index], "prevent_duplicate_names")
-  provisioning_options    = lookup(var.group[count.index], "provisioning_options")
+  prevent_duplicate_names = lookup(var.group[count.index], "prevent_duplicate_names", false)
+  provisioning_options    = lookup(var.group[count.index], "provisioning_options", "Team")
   security_enabled        = lookup(var.group[count.index], "security_enabled")
   theme                   = lookup(var.group[count.index], "theme")
   types                   = lookup(var.group[count.index], "types")
@@ -1036,13 +1037,13 @@ resource "azuread_service_principal" "this" {
   use_existing                  = lookup(var.service_principal[count.index], "use_existing")
 
   dynamic "feature_tags" {
-    for_each = try(lookup(var.service_principal[count.index], "feature_tags") == null ? [] : ["feature_tags"])
+    for_each = lookup(var.service_principal[count.index], "tags") != null ? [] : try(lookup(var.service_principal[count.index], "feature_tags") == null ? [] : ["feature_tags"])
     iterator = feat
     content {
-      custom_single_sign_on = lookup(feat.value, "custom_single_sign_on")
-      enterprise            = lookup(feat.value, "enterprise")
-      gallery               = lookup(feat.value, "gallery")
-      hide                  = lookup(feat.value, "hide")
+      custom_single_sign_on = lookup(feat.value, "custom_single_sign_on", false)
+      enterprise            = lookup(feat.value, "enterprise", false)
+      gallery               = lookup(feat.value, "gallery", false)
+      hide                  = lookup(feat.value, "hide", false)
     }
   }
 
@@ -1058,7 +1059,7 @@ resource "azuread_service_principal" "this" {
 resource "azuread_service_principal_certificate" "this" {
   count                = length(var.service_principal) == 0 ? 0 : length(var.service_principal_certificate)
   service_principal_id = try(element(azuread_service_principal.this.*.id, ))
-  value                = lookup(var.service_principal_certificate[count.index], "file_extension") == "pem" ? file(join("/", [path.cwd, "certificates", join(".", [lookup(var.service_principal_certificate[count.index], "value"), lookup(var.service_principal_certificate[count.index], "file_extension")])])) : base64encode(file(join("/", [path.cwd, "certificates", join(".", [lookup(var.service_principal_certificate[count.index], "value"), lookup(var.service_principal_certificate[count.index], "file_extension")])])))
+  value                = lookup(var.service_principal_certificate[count.index], "file_extension") == "pem" ? file(join("/", [path.cwd, "certificate", lookup(var.service_principal_certificate[count.index], "value")])) : base64encode(file(join("/", [path.cwd, "certificate", lookup(var.service_principal_certificate[count.index], "value")])))
   encoding             = lookup(var.service_principal_certificate[count.index], "encoding")
   end_date             = lookup(var.service_principal_certificate[count.index], "end_date")
   end_date_relative    = lookup(var.service_principal_certificate[count.index], "end_date_relative")
@@ -1093,7 +1094,7 @@ resource "azuread_synchronization_job" "this" {
   count                = length(var.service_principal) == 0 ? 0 : length(var.synchronization_job)
   service_principal_id = try(element(azuread_service_principal.this.*.id, lookup(var.synchronization_job[count.index], "service_principal")))
   template_id          = lookup(var.synchronization_job[count.index], "template_id")
-  enabled              = lookup(var.synchronization_job[count.index], "enabled")
+  enabled              = lookup(var.synchronization_job[count.index], "enabled",  true)
 }
 
 resource "azuread_synchronization_job_provision_on_demand" "this" {
@@ -1149,10 +1150,10 @@ resource "azuread_user" "this" {
   company_name                = lookup(var.user[count.index], "company_name")
   consent_provided_for_minor  = lookup(var.user[count.index], "consent_provided_for_minor")
   cost_center                 = lookup(var.user[count.index], "cost_center")
-  country                     = lookup(var.user[count.index], "country")
+  country                     = upper(lookup(var.user[count.index], "country"))
   department                  = lookup(var.user[count.index], "department")
-  disable_password_expiration = lookup(var.user[count.index], "disable_password_expiration")
-  disable_strong_password     = lookup(var.user[count.index], "disable_strong_password")
+  disable_password_expiration = lookup(var.user[count.index], "disable_password_expiration", false)
+  disable_strong_password     = lookup(var.user[count.index], "disable_strong_password", false)
   division                    = lookup(var.user[count.index], "division")
   employee_id                 = lookup(var.user[count.index], "employee_id")
   employee_type               = lookup(var.user[count.index], "employee_type")
@@ -1173,5 +1174,5 @@ resource "azuread_user" "this" {
   state                       = lookup(var.user[count.index], "state")
   street_address              = lookup(var.user[count.index], "street_address")
   surname                     = lookup(var.user[count.index], "surname")
-  usage_location              = lookup(var.user[count.index], "usage_location")
+  usage_location              = upper(lookup(var.user[count.index], "usage_location"))
 }

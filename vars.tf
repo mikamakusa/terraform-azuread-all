@@ -161,6 +161,46 @@ variable "application" {
     })))
   }))
   default = []
+
+  validation {
+    condition     = length([for a in var.application : true if contains(["None", "SecurityGroup", "DirectoryRole", "ApplicationGroup", "All"], a.group_membership_claims)]) == length(var.application)
+    error_message = "Possible values are None, SecurityGroup, DirectoryRole, ApplicationGroup or All."
+  }
+
+  validation {
+    condition     = length([for b in var.application : true if contains(["AzureADMyOrg", "AzureADMultipleOrgs", "AzureADandPersonalMicrosoftAccount", "PersonalMicrosoftAccount"], b.sign_in_audience)]) == length(var.application)
+    error_message = "Must be one of AzureADMyOrg, AzureADMultipleOrgs, AzureADandPersonalMicrosoftAccount or PersonalMicrosoftAccount."
+  }
+
+  validation {
+    condition     = length([for c in var.application : true if contains(["User", "Admin"], c.api.oauth2_permission_scope.type)]) == length(var.application)
+    error_message = "Possible values are User or Admin."
+  }
+
+  validation {
+    condition     = length([for d in var.application : true if contains(["User", "Application"], d.app_role.allowed_member_types)]) == length(var.application)
+    error_message = "Possible values are User or Application."
+  }
+
+  validation {
+    condition     = length([for e in var.application : true if contains(["cloud_displayname", "dns_domain_and_sam_account_name", "emit_as_roles", "include_externally_authenticated_upn_without_hash", "include_externally_authenticated_upn", "max_size_limit", "netbios_domain_and_sam_account_name", "on_premise_security_identifier", "sam_account_name", "use_guid"], e.optional_claims.access_token.additional_properties)]) == length(var.application)
+    error_message = " Possible values are: cloud_displayname, dns_domain_and_sam_account_name, emit_as_roles, include_externally_authenticated_upn_without_hash, include_externally_authenticated_upn, max_size_limit, netbios_domain_and_sam_account_name, on_premise_security_identifier, sam_account_name, and use_guid."
+  }
+
+  validation {
+    condition     = length([for f in var.application : true if contains(["cloud_displayname", "dns_domain_and_sam_account_name", "emit_as_roles", "include_externally_authenticated_upn_without_hash", "include_externally_authenticated_upn", "max_size_limit", "netbios_domain_and_sam_account_name", "on_premise_security_identifier", "sam_account_name", "use_guid"], f.optional_claims.id_token.additional_properties)]) == length(var.application)
+    error_message = " Possible values are: cloud_displayname, dns_domain_and_sam_account_name, emit_as_roles, include_externally_authenticated_upn_without_hash, include_externally_authenticated_upn, max_size_limit, netbios_domain_and_sam_account_name, on_premise_security_identifier, sam_account_name, and use_guid."
+  }
+
+  validation {
+    condition     = length([for g in var.application : true if contains(["cloud_displayname", "dns_domain_and_sam_account_name", "emit_as_roles", "include_externally_authenticated_upn_without_hash", "include_externally_authenticated_upn", "max_size_limit", "netbios_domain_and_sam_account_name", "on_premise_security_identifier", "sam_account_name", "use_guid"], g.optional_claims.saml2_token.additional_properties)]) == length(var.application)
+    error_message = " Possible values are: cloud_displayname, dns_domain_and_sam_account_name, emit_as_roles, include_externally_authenticated_upn_without_hash, include_externally_authenticated_upn, max_size_limit, netbios_domain_and_sam_account_name, on_premise_security_identifier, sam_account_name, and use_guid."
+  }
+
+  validation {
+    condition     = length([for h in var.application : true if contains(["Role", "Scope"], h.required_resource_access.resource_access.type)]) == length(var.application)
+    error_message = "Possible values are Role or Scope."
+  }
 }
 
 variable "application_api_access" {
@@ -362,6 +402,11 @@ variable "application_redirect_uris" {
     type           = string
   }))
   default = []
+
+  validation {
+    condition     = length([for a in var.application_redirect_uris : true if contains(["PublicClient", "SPA", "Web"], a.type)]) == length(var.application_redirect_uris)
+    error_message = "Must be one of: PublicClient, SPA, or Web."
+  }
 }
 
 variable "application_registration" {
@@ -384,6 +429,16 @@ variable "application_registration" {
     terms_of_service_url                   = optional(string)
   }))
   default = []
+
+  validation {
+    condition     = length([for a in var.application_registration : true if contains(["None", "SecurityGroup", "DirectoryRole", "ApplicationGroup", "All"], a.group_membership_claims)]) == length(var.application_registration)
+    error_message = "Possible values are None, SecurityGroup, DirectoryRole, ApplicationGroup or All."
+  }
+
+  validation {
+    condition     = length([for b in var.application_registration : true if contains(["AzureADMyOrg", "AzureADMultipleOrgs", "AzureADandPersonalMicrosoftAccount", "PersonalMicrosoftAccount"], b.sign_in_audience)]) == length(var.application_registration)
+    error_message = "Must be one of AzureADMyOrg, AzureADMultipleOrgs, AzureADandPersonalMicrosoftAccount or PersonalMicrosoftAccount."
+  }
 }
 
 variable "conditional_access_policy" {
@@ -472,105 +527,105 @@ variable "conditional_access_policy" {
   validation {
     condition = length([
       for b in var.conditional_access_policy : true if contains(["all", "browser", "mobileAppsAndDesktopClients", "exchangeActiveSync", "easSupported", "other"], b.conditions.client_app_types)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "Possible values are: all, browser, mobileAppsAndDesktopClients, exchangeActiveSync, easSupported and other."
   }
 
   validation {
     condition = length([
       for c in var.conditional_access_policy : true if contains(["low", "medium", "high", "none", "unknownFutureValue"], c.conditions.service_principal_risk_levels)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "Possible values are: low, medium, high, none, unknownFutureValue."
   }
 
   validation {
     condition = length([
       for d in var.conditional_access_policy : true if contains(["low", "medium", "high", "hidden", "none", "unknownFutureValue"], d.conditions.sign_in_risk_levels)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "Possible values are: low, medium, high, hidden, none, unknownFutureValue."
   }
 
   validation {
     condition = length([
       for e in var.conditional_access_policy : true if contains(["low", "medium", "high", "hidden", "none", "unknownFutureValue"], e.conditions.user_risk_levels)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "Possible values are: low, medium, high, hidden, none, unknownFutureValue."
   }
 
   validation {
     condition = length([
       for f in var.conditional_access_policy : true if contains(["included_applications", "included_user_actions"], f.conditions.applications.included_applications)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "One of included_applications or included_user_actions must be specified."
   }
 
   validation {
     condition = length([
       for g in var.conditional_access_policy : true if contains(["urn:user:registerdevice", "urn:user:registersecurityinfo"], g.conditions.applications.included_user_actions)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "Supported values are urn:user:registerdevice and urn:user:registersecurityinfo."
   }
 
   validation {
     condition = length([
       for h in var.conditional_access_policy : true if contains(["include", "exclude"], h.conditions.devices.filter.mode)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "Supported values are include and exclude."
   }
 
   validation {
     condition = length([
       for i in var.conditional_access_policy : true if contains(["all", "android", "iOS", "linux", "macOS", "windows", "windowsPhone", "unknownFutureValue"], i.conditions.platforms.excluded_platforms)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "Possible values are: all, android, iOS, linux, macOS, windows, windowsPhone or unknownFutureValue."
   }
 
   validation {
     condition = length([
       for j in var.conditional_access_policy : true if contains(["all", "android", "iOS", "linux", "macOS", "windows", "windowsPhone", "unknownFutureValue"], j.conditions.platforms.included_platforms)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "Possible values are: all, android, iOS, linux, macOS, windows, windowsPhone or unknownFutureValue."
   }
 
   validation {
     condition = length([
       for k in var.conditional_access_policy : true if contains(["block", "mfa", "approvedApplication", "compliantApplication", "compliantDevice", "domainJoinedDevice", "passwordChange", "unknownFutureValue"], k.grant_controls.built_in_controls)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "Possible values are: block, mfa, approvedApplication, compliantApplication, compliantDevice, domainJoinedDevice, passwordChange or unknownFutureValue."
   }
 
   validation {
     condition = length([
       for l in var.conditional_access_policy : true if contains(["blockDownloads", "mcasConfigured", "monitorOnly", "unknownFutureValue"], l.session_controls.cloud_app_security_policy)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "Possible values are: blockDownloads, mcasConfigured, monitorOnly or unknownFutureValue."
   }
 
   validation {
     condition = length([
       for l in var.conditional_access_policy : true if contains(["always", "never"], l.session_controls.persistent_browser_mode)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "Possible values are: always, never."
   }
 
   validation {
     condition = length([
       for l in var.conditional_access_policy : true if contains(["primaryAndSecondaryAuthentication", "secondaryAuthentication"], l.session_controls.sign_in_frequency_authentication_type)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "Possible values are: primaryAndSecondaryAuthentication or secondaryAuthentication."
   }
 
   validation {
     condition = length([
       for m in var.conditional_access_policy : true if contains(["timeBased", "everyTime"], m.session_controls.sign_in_frequency_interval)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "Possible values are: timeBased or everyTime."
   }
 
   validation {
     condition = length([
       for m in var.conditional_access_policy : true if contains(["hours", "days"], m.session_controls.sign_in_frequency_period)
-    ])
+    ]) == length(var.conditional_access_policy)
     error_message = "Possible values are: timeBased or everyTime."
   }
 }
@@ -686,6 +741,34 @@ variable "group" {
     })))
   }))
   default = []
+
+  validation {
+    condition = length([
+      for a in var.group : true if contains(["AllowOnlyMembersToPost", "HideGroupInOutlook", "SkipExchangeInstantOn", "SubscribeMembersToCalendarEventsDisabled", "SubscribeNewGroupMembers","WelcomeEmailDisabled"], a.behaviors)
+    ]) == length(var.group)
+    error_message = "Possible values are AllowOnlyMembersToPost, HideGroupInOutlook, SkipExchangeInstantOn, SubscribeMembersToCalendarEventsDisabled, SubscribeNewGroupMembers and WelcomeEmailDisabled."
+  }
+
+  validation {
+    condition = length([
+      for b in var.group : true if contains(["UniversalDistributionGroup", "UniversalMailEnabledSecurityGroup", "UniversalSecurityGroup"], b.onpremises_group_type)
+    ]) == length(var.group)
+    error_message = "Possible values are UniversalDistributionGroup, UniversalMailEnabledSecurityGroup, or UniversalSecurityGroup."
+  }
+
+  validation {
+    condition = length([
+      for c in var.group : true if contains(["Blue", "Green", "Orange", "Pink", "Purple", "Red", "Teal"], c.theme)
+    ]) == length(var.group)
+    error_message = "Possible values are Blue, Green, Orange, Pink, Purple, Red or Teal."
+  }
+
+  validation {
+    condition = length([
+      for d in var.group : true if contains(["Private", "Public", "Hiddenmembership"], d.visibility)
+    ]) == length(var.group)
+    error_message = "Possible values are Private, Public, or Hiddenmembership."
+  }
 }
 
 variable "group_member" {
@@ -812,6 +895,11 @@ variable "access_package_resource_catalog_association" {
     resource_origin_system = string
   }))
   default = []
+
+  validation {
+    condition     = length([for a in var.access_package_resource_catalog_association : true if contains(["SharePointOnline", "AadApplication", "AadGroup"], a.resource_origin_system)]) == length(var.access_package_resource_catalog_association)
+    error_message = "Valid values are SharePointOnline, AadApplication or AadGroup."
+  }
 }
 
 variable "access_package_resource_package_association" {
@@ -825,7 +913,7 @@ variable "access_package_resource_package_association" {
 
   validation {
     condition     = length([for a in var.access_package_resource_package_association : true if contains(["Member", "Owner"], a.access_type)]) == length(var.access_package_resource_package_association)
-    error_message = "Valid values are Member, or Owner. The default is Member."
+    error_message = "Valid values are Member or Owner."
   }
 }
 
@@ -1025,6 +1113,11 @@ variable "service_principal" {
     })))
   }))
   default = []
+
+  validation {
+    condition     = length([for a in var.service_principal : true if contains(["oidc", "password", "saml", "notSupported"], a.preferred_single_sign_on_mode)]) == length(var.service_principal)
+    error_message = "Supported values are oidc, password, saml or notSupported."
+  }
 }
 
 variable "service_principal_certificate" {
@@ -1038,13 +1131,17 @@ variable "service_principal_certificate" {
     key_id               = optional(string)
     start_date           = optional(string)
     type                 = string
-    file_extension       = optional(string)
   }))
   default = []
 
   validation {
     condition     = length([for a in var.service_principal_certificate : true if contains(["AsymmetricX509Cert", "Symmetric"], a.type)]) == length(var.service_principal_certificate)
     error_message = "Must be one of AsymmetricX509Cert or Symmetric."
+  }
+
+  validation {
+    condition     = length([for b in var.service_principal_certificate : true if contains(["pem", "base64", "hex"], b.encoding)]) == length(var.service_principal_certificate)
+    error_message = "Must be one of pem, base64 or hex."
   }
 }
 
@@ -1104,6 +1201,11 @@ variable "synchronization_job_provision_on_demand" {
     }))
   }))
   default = []
+
+  validation {
+    condition     = length([for a in var.synchronization_job_provision_on_demand : true if contains(["user", "User", "Worker", "Group"], a.parameter.subject.object_type_name)]) == length(var.synchronization_job_provision_on_demand)
+    error_message = "Must be one of user, User, Worker, Group."
+  }
 }
 
 variable "synchronization_secret" {
@@ -1172,4 +1274,14 @@ variable "user" {
     usage_location              = optional(string)
   }))
   default = []
+
+  validation {
+    condition     = length([for a in var.user : true if contains(["Adult", "NotAdult", "Minor"], a.age_group)]) == length(var.user)
+    error_message = "Supported values are Adult, NotAdult and Minor."
+  }
+
+  validation {
+    condition     = length([for b in var.user : true if contains(["Granted", "Denied", "NotRequired"], b.consent_provided_for_minor)]) == length(var.user)
+    error_message = "Supported values are Adult, NotAdult and Minor."
+  }
 }

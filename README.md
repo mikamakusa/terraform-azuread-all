@@ -17,6 +17,7 @@
 | <a name="module_keyvault"></a> [keyvault](#module\_keyvault) | ./modules/terraform-azure-keyvault | n/a |
 
 ## Module Usage
+
 ### administrative Unit
 #### Resources
 ```terraform
@@ -72,6 +73,158 @@ flowchart TD
     A --> B --> C
 ````
 
+### App Role Assignment
+#### Resources
+````terraform
+module "azuread" {
+  source                          = "./modules/terraform-azure-keyvault"
+  app_role_assignment = var.app_role_assignment
+  application         = var.application
+  service_principal   = var.service_principal
+}
+````
+
+#### Variables
+````terraform
+variable "app_role_assignment" {
+  type = any
+}
+
+variable "application" {
+  type = any
+}
+
+variable "service_principal" {
+type = any
+}
+````
+
+#### tfvars
+````terraform
+app_role_assignment = [
+  {
+      id                  = 0
+      app_role_id         = 0
+      principal_object_id = 1
+      resource_object_id  = 0
+    }
+]
+application = [{
+  id               = 0
+  display_name     = "example"
+  identifier_uris  = ["api://example-app"]
+  logo_image       = "logo.png"
+  sign_in_audience = "AzureADMultipleOrgs"
+  api = [
+    {
+      mapped_claims_enabled          = true
+      requested_access_token_version = 2
+
+      oauth2_permission_scope = [
+        {
+          admin_consent_description = "Allow the application to access example on behalf of the signed-in user."
+          admin_consent_display_name = "Access example"
+          enabled = true
+          id                         = "96183846-204b-4b43-82e1-5d2222eb4b9b"
+          type = "User"
+          user_consent_description = "Allow the application to access example on your behalf."
+          user_consent_display_name = "Access example"
+          value = "user_impersonation"
+        }
+      ]
+      oauth2_permission_scope = [
+        {
+          admin_consent_description = "Administer the example application"
+          admin_consent_display_name = "Administer"
+          enabled = true
+          id                         = "be98fa3e-ab5b-4b11-83d9-04ba2b7946bc"
+          type = "Admin"
+          value = "administer"
+        }
+      ]
+    }
+  ]
+  app_role  = [
+    {
+      allowed_member_types = ["User", "Application"]
+      description  = "Admins can manage roles and perform all task actions"
+      display_name = "Admin"
+      enabled      = true
+      id           = "1b19509b-32b1-4e9f-b71d-4992aa991967"
+      value        = "admin"
+    }
+  ]
+  feature_tags = [
+    {
+      enterprise = true
+      gallery    = true
+    }
+  ]
+  optional_claims = [
+    {
+      access_token = [
+        {
+          name = "myclaim"
+        }
+      ]
+      access_token = [
+        {
+          name = "otherclaim"
+        }
+      ]
+      id_token = [
+        {
+          name      = "userclaim"
+          source    = "user"
+          essential = true
+          additional_properties = ["emit_as_roles"]
+        }
+      ]
+      saml2_token = [
+        {
+          name = "samlexample"
+        }
+      ]
+    }
+  ]
+}]
+service_principal = [
+  {
+      id        = 0
+      client_id = 0
+      feature_tags = [
+        {
+          enterprise = true
+          gallery    = true
+        }
+      ]
+    },
+  {
+    id        = 1
+    client_id = 0
+    feature_tags = [
+      {
+        enterprise = true
+        gallery    = true
+      }
+    ]
+  }
+]
+````
+
+#### resource relation graph
+````mermaid
+flowchart TD
+%%Nodes
+    A(application)
+    B(service_principal.A)
+    D(service_principal.B)
+    C(app_role_assignment)
+%% Connections
+    B --> A
+    A --> D --> C
+    B --> C
+````
 
 ## Resources
 
@@ -184,7 +337,7 @@ flowchart TD
 | <a name="input_privileged_access_group_eligibility_schedule"></a> [privileged\_access\_group\_eligibility\_schedule](#input\_privileged\_access\_group\_eligibility\_schedule) | n/a | <pre>list(object({<br>    id                   = number<br>    assignment_type      = string<br>    group_id             = any<br>    user_id              = any<br>    justification        = optional(string)<br>    ticket_number        = optional(string)<br>    ticket_system        = optional(string)<br>    start_date           = optional(string)<br>    expiration_date      = optional(string)<br>    duration             = optional(string)<br>    permanent_assignment = optional(bool)<br>  }))</pre> | `[]` | no |
 | <a name="input_resource_group_name"></a> [resource\_group\_name](#input\_resource\_group\_name) | n/a | `string` | n/a | yes |
 | <a name="input_service_principal"></a> [service\_principal](#input\_service\_principal) | n/a | <pre>list(object({<br>    id                            = number<br>    account_enabled               = optional(bool)<br>    alternative_names             = optional(list(string))<br>    app_role_assignment_required  = optional(bool)<br>    client_id                     = optional(any)<br>    description                   = optional(string)<br>    login_url                     = optional(string)<br>    notes                         = optional(string)<br>    notification_email_addresses  = optional(list(string))<br>    owners                        = optional(list(string))<br>    preferred_single_sign_on_mode = optional(string)<br>    tags                          = optional(list(string))<br>    use_existing                  = optional(bool)<br>    feature_tags = optional(list(object({<br>      custom_single_sign_on = optional(bool)<br>      enterprise            = optional(bool)<br>      gallery               = optional(bool)<br>      hide                  = optional(bool)<br>    })))<br>    saml_single_sign_on = optional(list(object({<br>      relay_state = optional(string)<br>    })))<br>  }))</pre> | `[]` | no |
-| <a name="input_service_principal_certificate"></a> [service\_principal\_certificate](#input\_service\_principal\_certificate) | n/a | <pre>list(object({<br>    id                   = number<br>    service_principal_id = any<br>    value                = string<br>    encoding             = optional(string)<br>    end_date             = optional(string)<br>    end_date_relative    = optional(string)<br>    key_id               = optional(string)<br>    start_date           = optional(string)<br>    type                 = string<br>    file_extension       = optional(string)<br>  }))</pre> | `[]` | no |
+| <a name="input_service_principal_certificate"></a> [service\_principal\_certificate](#input\_service\_principal\_certificate) | n/a | <pre>list(object({<br>    id                   = number<br>    service_principal_id = any<br>    value                = string<br>    encoding             = optional(string)<br>    end_date             = optional(string)<br>    end_date_relative    = optional(string)<br>    key_id               = optional(string)<br>    start_date           = optional(string)<br>    type                 = string<br>  }))</pre> | `[]` | no |
 | <a name="input_service_principal_claims_mapping_policy_assignment"></a> [service\_principal\_claims\_mapping\_policy\_assignment](#input\_service\_principal\_claims\_mapping\_policy\_assignment) | n/a | <pre>list(object({<br>    id                       = number<br>    claims_mapping_policy_id = any<br>    service_principal_id     = any<br>  }))</pre> | `[]` | no |
 | <a name="input_service_principal_delegated_permission_grant"></a> [service\_principal\_delegated\_permission\_grant](#input\_service\_principal\_delegated\_permission\_grant) | n/a | <pre>list(object({<br>    id                   = number<br>    claim_values         = list(string)<br>    service_principal_id = any<br>    user_id              = optional(any)<br>  }))</pre> | `[]` | no |
 | <a name="input_service_principal_password"></a> [service\_principal\_password](#input\_service\_principal\_password) | n/a | <pre>list(object({<br>    id                   = number<br>    service_principal_id = any<br>    end_date             = optional(string)<br>    end_date_relative    = optional(string)<br>    rotate_when_changed  = optional(map(string))<br>    start_date           = optional(string)<br>  }))</pre> | `[]` | no |
@@ -199,6 +352,12 @@ flowchart TD
 
 | Name | Description |
 |------|-------------|
+| <a name="output_access_package_assignment_policy_id"></a> [access\_package\_assignment\_policy\_id](#output\_access\_package\_assignment\_policy\_id) | n/a |
+| <a name="output_access_package_catalog_id"></a> [access\_package\_catalog\_id](#output\_access\_package\_catalog\_id) | n/a |
+| <a name="output_access_package_catalog_role_assignment_id"></a> [access\_package\_catalog\_role\_assignment\_id](#output\_access\_package\_catalog\_role\_assignment\_id) | n/a |
+| <a name="output_access_package_id"></a> [access\_package\_id](#output\_access\_package\_id) | n/a |
+| <a name="output_access_package_resource_catalog_association_id"></a> [access\_package\_resource\_catalog\_association\_id](#output\_access\_package\_resource\_catalog\_association\_id) | n/a |
+| <a name="output_access_package_resource_package_association_id"></a> [access\_package\_resource\_package\_association\_id](#output\_access\_package\_resource\_package\_association\_id) | n/a |
 | <a name="output_administrative_unit_display_name"></a> [administrative\_unit\_display\_name](#output\_administrative\_unit\_display\_name) | n/a |
 | <a name="output_administrative_unit_id"></a> [administrative\_unit\_id](#output\_administrative\_unit\_id) | n/a |
 | <a name="output_administrative_unit_member_id"></a> [administrative\_unit\_member\_id](#output\_administrative\_unit\_member\_id) | n/a |
@@ -222,4 +381,33 @@ flowchart TD
 | <a name="output_application_permission_scope_id"></a> [application\_permission\_scope\_id](#output\_application\_permission\_scope\_id) | n/a |
 | <a name="output_application_redirect_uris_id"></a> [application\_redirect\_uris\_id](#output\_application\_redirect\_uris\_id) | n/a |
 | <a name="output_application_registration_id"></a> [application\_registration\_id](#output\_application\_registration\_id) | n/a |
+| <a name="output_authentication_strength_policy_id"></a> [authentication\_strength\_policy\_id](#output\_authentication\_strength\_policy\_id) | n/a |
+| <a name="output_claims_mapping_policy_id"></a> [claims\_mapping\_policy\_id](#output\_claims\_mapping\_policy\_id) | n/a |
+| <a name="output_conditional_access_policy_display_name"></a> [conditional\_access\_policy\_display\_name](#output\_conditional\_access\_policy\_display\_name) | n/a |
+| <a name="output_conditional_access_policy_id"></a> [conditional\_access\_policy\_id](#output\_conditional\_access\_policy\_id) | n/a |
+| <a name="output_custom_directory_role_id"></a> [custom\_directory\_role\_id](#output\_custom\_directory\_role\_id) | n/a |
+| <a name="output_directory_role_assignment_id"></a> [directory\_role\_assignment\_id](#output\_directory\_role\_assignment\_id) | n/a |
+| <a name="output_directory_role_eligibility_schedule_request_id"></a> [directory\_role\_eligibility\_schedule\_request\_id](#output\_directory\_role\_eligibility\_schedule\_request\_id) | n/a |
+| <a name="output_directory_role_id"></a> [directory\_role\_id](#output\_directory\_role\_id) | n/a |
+| <a name="output_directory_role_member_id"></a> [directory\_role\_member\_id](#output\_directory\_role\_member\_id) | n/a |
+| <a name="output_directory_role_object_id"></a> [directory\_role\_object\_id](#output\_directory\_role\_object\_id) | n/a |
+| <a name="output_group_id"></a> [group\_id](#output\_group\_id) | n/a |
+| <a name="output_group_member_id"></a> [group\_member\_id](#output\_group\_member\_id) | n/a |
+| <a name="output_group_role_management_policy_id"></a> [group\_role\_management\_policy\_id](#output\_group\_role\_management\_policy\_id) | n/a |
+| <a name="output_invitation_id"></a> [invitation\_id](#output\_invitation\_id) | n/a |
+| <a name="output_named_location_id"></a> [named\_location\_id](#output\_named\_location\_id) | n/a |
+| <a name="output_privileged_access_group_assignment_schedule_id"></a> [privileged\_access\_group\_assignment\_schedule\_id](#output\_privileged\_access\_group\_assignment\_schedule\_id) | n/a |
+| <a name="output_privileged_access_group_eligibility_schedule_id"></a> [privileged\_access\_group\_eligibility\_schedule\_id](#output\_privileged\_access\_group\_eligibility\_schedule\_id) | n/a |
+| <a name="output_service_principal_app_roles"></a> [service\_principal\_app\_roles](#output\_service\_principal\_app\_roles) | n/a |
+| <a name="output_service_principal_certificate_id"></a> [service\_principal\_certificate\_id](#output\_service\_principal\_certificate\_id) | n/a |
+| <a name="output_service_principal_claims_mapping_policy_assignment_id"></a> [service\_principal\_claims\_mapping\_policy\_assignment\_id](#output\_service\_principal\_claims\_mapping\_policy\_assignment\_id) | n/a |
+| <a name="output_service_principal_delegated_permission_grant_id"></a> [service\_principal\_delegated\_permission\_grant\_id](#output\_service\_principal\_delegated\_permission\_grant\_id) | n/a |
 | <a name="output_service_principal_id"></a> [service\_principal\_id](#output\_service\_principal\_id) | n/a |
+| <a name="output_service_principal_password"></a> [service\_principal\_password](#output\_service\_principal\_password) | n/a |
+| <a name="output_service_principal_permission_scopes"></a> [service\_principal\_permission\_scopes](#output\_service\_principal\_permission\_scopes) | n/a |
+| <a name="output_service_principal_token_signing_certificate"></a> [service\_principal\_token\_signing\_certificate](#output\_service\_principal\_token\_signing\_certificate) | n/a |
+| <a name="output_synchronization_job"></a> [synchronization\_job](#output\_synchronization\_job) | n/a |
+| <a name="output_synchronization_job_provision_on_demand"></a> [synchronization\_job\_provision\_on\_demand](#output\_synchronization\_job\_provision\_on\_demand) | n/a |
+| <a name="output_synchronization_secret"></a> [synchronization\_secret](#output\_synchronization\_secret) | n/a |
+| <a name="output_user"></a> [user](#output\_user) | n/a |
+| <a name="output_user_flow_attribute"></a> [user\_flow\_attribute](#output\_user\_flow\_attribute) | n/a |
